@@ -1,6 +1,7 @@
 {
   "name": "viacorp",
   "private": true,
+  "homepage": "https://grupomax.github.io/viacorp",
   "version": "0.0.0",
   "type": "module",
   "scripts": {
