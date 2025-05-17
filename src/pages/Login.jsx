@@ -81,7 +81,7 @@ export default function Login({ onLogin }) {
         >
           <VStack spacing={4}>
             <Image
-              src="/logo.svg"
+              src="/LOGIN.png"
               alt="ViaCorp Logo"
               boxSize="80px"
               objectFit="contain"
