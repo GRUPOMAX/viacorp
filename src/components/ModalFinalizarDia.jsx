@@ -113,131 +113,190 @@ export default function ModalFinalizarDia({ isOpen, onClose, onSalvar, dadosDia 
     }
   };
 
-  const handleSalvar = async () => {
-    if (!kmFinal || (houveAbastecimento && (!tipoCombustivel || !valorAbastecido))) {
-      toast({
-        title: 'Preencha todos os campos obrigatórios.',
-        status: 'warning',
-        isClosable: true,
-      });
-      return;
+const handleSalvar = async () => {
+  if (!kmFinal || (houveAbastecimento && (!tipoCombustivel || !valorAbastecido))) {
+    toast({
+      title: 'Preencha todos os campos obrigatórios.',
+      status: 'warning',
+      isClosable: true,
+    });
+    return;
+  }
+
+  try {
+    const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
+    const cpf = usuario?.['UnicID-CPF'];
+    const empresa = usuario?.company ?? 'max-fibra';
+    const veiculoAtual = dadosDia?.veiculo;
+
+    const dataRegistro = dayjs(dadosDia?.hora).format('YYYY-MM-DD');
+    const dataHoje = dayjs().format('YYYY-MM-DD');
+    const horaFinal = dayjs().format('HH:mm');
+
+    const kmInicial = parseFloat(dadosDia?.['KM-Control']?.['KM-INICIAL'] || 0);
+    const kmFinalNumber = parseFloat(kmFinal);
+    let totalKm = kmFinalNumber - kmInicial;
+    let unidade = 'km';
+
+    if (totalKm < 1) {
+      totalKm *= 1000;
+      unidade = totalKm < 1 ? 'cm' : 'm';
+      if (unidade === 'cm') totalKm *= 100;
     }
 
-    try {
-      const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
-      const cpf = usuario?.['UnicID-CPF'];
-      const dataRegistro = dayjs(dadosDia?.hora).format('YYYY-MM-DD');
-      const dataHoje = dayjs().format('YYYY-MM-DD');
-      const horaFinal = dayjs().format('HH:mm');
+    const valorTotal = Number(valorAbastecido.replace(/[^\d]/g, '')) / 100;
+    const precoPorLitro = Number(precoLitro.replace(/[^\d]/g, '')) / 100;
 
-      const kmInicial = parseFloat(dadosDia?.['KM-Control']?.['KM-INICIAL'] || 0);
-      const kmFinalNumber = parseFloat(kmFinal);
-      let totalKm = kmFinalNumber - kmInicial;
-      let unidade = 'km';
+    const litrosAbastecidos = (houveAbastecimento && valorTotal && precoPorLitro)
+      ? parseFloat((valorTotal / precoPorLitro).toFixed(2))
+      : 0;
 
-      if (totalKm < 1) {
-        totalKm *= 1000;
-        unidade = totalKm < 1 ? 'cm' : 'm';
-        if (unidade === 'cm') totalKm *= 100;
-      }
 
-      // Conversões
-      const valorTotal = Number(valorAbastecido.replace(/[^\d]/g, '')) / 100;
-      const precoPorLitro = Number(precoLitro.replace(/[^\d]/g, '')) / 100;
 
-      const litrosAbastecidos = (houveAbastecimento && valorTotal && precoPorLitro)
-        ? parseFloat((valorTotal / precoPorLitro).toFixed(2))
-        : 0;
+    // 🔍 Buscar dados da empresa
+    const resEmp = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records?where=(Enterprise,eq,${empresa})`, {
+      headers: { 'xc-token': NOCODB_TOKEN }
+    });
+    const dataEmp = await resEmp.json();
+    const registroEmpresa = dataEmp?.list?.[0];
+    const listaPadrao = registroEmpresa?.['Vehicle-Standard'] ?? [];
 
-      const consumoReal = (litrosAbastecidos && totalKm > 0)
-        ? parseFloat((totalKm / litrosAbastecidos).toFixed(2))
-        : 0;
+    // Tentar buscar da empresa
+    const veiculoEmpresa = listaPadrao.find(v => v.veiculo === veiculoAtual);
+    let performancePadrao = veiculoEmpresa?.['KM-PERFORMACE'];
 
-      // ✅ Atualiza litros disponíveis no veículo
-      const res = await fetch(
+    // Se não tiver na empresa, busca do veículo do usuário
+    if (!performancePadrao || performancePadrao <= 0) {
+      const resUser = await fetch(
         `https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${cpf})`,
         { headers: { 'xc-token': NOCODB_TOKEN } }
       );
-      const dadosVeiculo = await res.json();
-      const registroId = dadosVeiculo?.list?.[0]?.Id;
-      const litrosAntes = dadosVeiculo?.list?.[0]?.['ABASTECIMENTO-DISPONIVELE-LITRO'] ?? 0;
-      const litrosConsumidos = kmPorLitroPadrao > 0 ? parseFloat((totalKm / kmPorLitroPadrao).toFixed(2)) : 0;
+      const dadosUser = await resUser.json();
+      const veiculoUser = dadosUser?.list?.[0];
+      performancePadrao = veiculoUser?.['KM-PERFORMACE'] ?? 0;
+    }
 
-      let litrosAtualizados = parseFloat(litrosAntes) || 0;
+    const litrosConsumidos = performancePadrao > 0
+      ? parseFloat((totalKm / performancePadrao).toFixed(2))
+      : 0;
 
-      if (houveAbastecimento) {
-        litrosAtualizados += litrosAbastecidos;
-      }
+    const consumoReal = (totalKm > 0 && litrosConsumidos > 0)
+      ? parseFloat((totalKm / litrosConsumidos).toFixed(2))
+      : 0;
 
-      // Sempre subtrai o consumo
+
+
+    // 🔁 Atualiza na tabela certa
+    let litrosRestantesFinais = 0;
+
+    if (veiculoEmpresa) {
+      // Atualiza Vehicle-Standard
+      const novaLista = listaPadrao.map(v => {
+        if (v.veiculo === veiculoAtual) {
+          const atual = parseFloat(v['ABASTECIMENTO-DISPONIVELE-LITRO'] || 0);
+          const novo = Math.max(0, parseFloat((atual - litrosConsumidos).toFixed(2)));
+          litrosRestantesFinais = novo;
+          return { ...v, 'ABASTECIMENTO-DISPONIVELE-LITRO': novo };
+        }
+        return v;
+      });
+
+      await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'xc-token': NOCODB_TOKEN,
+        },
+        body: JSON.stringify({
+          Id: registroEmpresa?.Id,
+          'Vehicle-Standard': novaLista
+        })
+      });
+    } else {
+      // Atualiza veículo do usuário
+      const resUser = await fetch(
+        `https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${cpf})`,
+        { headers: { 'xc-token': NOCODB_TOKEN } }
+      );
+      const dadosUser = await resUser.json();
+      const registroUser = dadosUser?.list?.[0];
+      const registroId = registroUser?.Id;
+
+      let litrosAtualizados = parseFloat(registroUser?.['ABASTECIMENTO-DISPONIVELE-LITRO'] || 0);
+
+      if (houveAbastecimento) litrosAtualizados += litrosAbastecidos;
       litrosAtualizados -= litrosConsumidos;
-      litrosAtualizados = Math.max(0, parseFloat(litrosAtualizados.toFixed(2))); // Evita valor negativo
+      litrosAtualizados = Math.max(0, parseFloat(litrosAtualizados.toFixed(2)));
+      litrosRestantesFinais = litrosAtualizados;
 
-
-      if (registroId !== undefined) {
-        await fetch('https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records', {
+      if (registroId) {
+        await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
             'xc-token': NOCODB_TOKEN,
           },
           body: JSON.stringify({
-            "Id": registroId,
-            "ABASTECIMENTO-DISPONIVELE-LITRO": litrosAtualizados
-          }),
+            Id: registroId,
+            'ABASTECIMENTO-DISPONIVELE-LITRO': litrosAtualizados
+          })
         });
       }
-
-      const dadosAtualizados = {
-        ...dadosDia['KM-Control'],
-        'KM-FINAL': kmFinalNumber,
-        'HORA_KM-FINAL': horaFinal,
-        'URL_IMG-KM-FINAL': fotoKmFinal || '',
-        'TOTAL-KM_RODADO': parseFloat(totalKm.toFixed(2)),
-        'UNIDADE': unidade,
-        'ABASTECEU': houveAbastecimento,
-        'VALOR_ABASTECIMENTO': houveAbastecimento ? `R$ ${valorAbastecido}` : '',
-        'TIPO_DE_ABASTECIMENTO': tipoCombustivel,
-        'URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_1': comprovantes[0] || '',
-        'URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_2': comprovantes[1] || '',
-        'OBSERVAÇÃO': observacao,
-        'LITROS_ABASTECIDOS': litrosAbastecidos,
-        'CONSUMO_REAL_KM_L': consumoReal,
-        'PERFORMANCE_PADRAO_KM_L': kmPorLitroPadrao,
-        'PRECO_POR_LITRO': precoLitro,
-        'LITROS_CONSUMIDOS': litrosConsumidos,
-        'LITROS_RESTANTES_APOS': litrosAtualizados,
-        ...(dataHoje !== dataRegistro && { 'DATA_FINALIZACAO': dataHoje })
-      };
-
-      await salvarRegistroKm(cpf, dadosAtualizados, dataRegistro);
-
-      toast({
-        title: 'Dia finalizado com sucesso.',
-        status: 'success',
-        isClosable: true,
-      });
-
-      onSalvar(dadosAtualizados);
-      onClose();
-
-      // Reset
-      setKmFinal('');
-      setHouveAbastecimento(false);
-      setTipoCombustivel('');
-      setValorAbastecido('');
-      setPrecoLitro('');
-      setFotoKmFinal(null);
-      setComprovantes([]);
-    } catch (err) {
-      toast({
-        title: 'Erro ao finalizar dia.',
-        description: err.message,
-        status: 'error',
-        isClosable: true,
-      });
     }
-  };
+
+    const dadosAtualizados = {
+      ...dadosDia['KM-Control'],
+      'KM-FINAL': kmFinalNumber,
+      'HORA_KM-FINAL': horaFinal,
+      'URL_IMG-KM-FINAL': fotoKmFinal || '',
+      'TOTAL-KM_RODADO': parseFloat(totalKm.toFixed(2)),
+      'UNIDADE': unidade,
+      'ABASTECEU': houveAbastecimento,
+      'VALOR_ABASTECIMENTO': houveAbastecimento ? `R$ ${valorAbastecido}` : '',
+      'TIPO_DE_ABASTECIMENTO': tipoCombustivel,
+      'URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_1': comprovantes[0] || '',
+      'URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_2': comprovantes[1] || '',
+      'OBSERVAÇÃO': observacao,
+      'LITROS_ABASTECIDOS': litrosAbastecidos,
+      'CONSUMO_REAL_KM_L': consumoReal,
+      'PERFORMANCE_PADRAO_KM_L': performancePadrao,
+      'PRECO_POR_LITRO': precoPorLitro,
+      'LITROS_CONSUMIDOS': litrosConsumidos,
+      'LITROS_RESTANTES_APOS': litrosRestantesFinais,
+      ...(dataHoje !== dataRegistro && { 'DATA_FINALIZACAO': dataHoje })
+    };
+
+    await salvarRegistroKm(cpf, dadosAtualizados, dataRegistro);
+
+    toast({
+      title: 'Dia finalizado com sucesso.',
+      status: 'success',
+      isClosable: true,
+    });
+
+    onSalvar(dadosAtualizados);
+    onClose();
+
+    // Reset
+    setKmFinal('');
+    setHouveAbastecimento(false);
+    setTipoCombustivel('');
+    setValorAbastecido('');
+    setPrecoLitro('');
+    setFotoKmFinal(null);
+    setComprovantes([]);
+  } catch (err) {
+    toast({
+      title: 'Erro ao finalizar dia.',
+      description: err.message,
+      status: 'error',
+      isClosable: true,
+    });
+  }
+};
+
+
+
 
 
 

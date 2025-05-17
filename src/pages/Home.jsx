@@ -1,4 +1,4 @@
-import { Box, Heading, Spinner, IconButton } from '@chakra-ui/react';
+import { Box, Heading, Spinner, IconButton, Select  } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 import ModalInicioDoDia from '../components/ModalInicioDoDia';
 import CardDiaRodando from '../components/CardDiaRodando';
@@ -26,20 +26,86 @@ export default function Home() {
   const [registroSelecionado, setRegistroSelecionado] = useState(null);
   const [litrosRestantes, setLitrosRestantes] = useState(null);
   const [modalAbastecimentoAberto, setModalAbastecimentoAberto] = useState(false);
+  const [veiculosDisponiveis, setVeiculosDisponiveis] = useState([]);
+  const [veiculoSelecionado, setVeiculoSelecionado] = useState('');
 
-  const fetchLitrosDisponiveis = async (cpf) => {
+
+
+  const fetchVeiculosDisponiveis = async () => {
     try {
-      const res = await fetch(
+      const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
+      const cpf = usuario?.['UnicID-CPF'];
+      const empresa = usuario?.company ?? 'max-fibra';
+
+      const [resPadrao, resUsuario] = await Promise.all([
+        fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records?where=(Enterprise,eq,${empresa})`, {
+          headers: { 'xc-token': import.meta.env.VITE_NOCODB_TOKEN }
+        }),
+        fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${cpf})`, {
+          headers: { 'xc-token': import.meta.env.VITE_NOCODB_TOKEN }
+        }),
+      ]);
+
+      const listaPadrao = await resPadrao.json();
+      const listaUsuario = await resUsuario.json();
+
+      const veiculosPadrao = listaPadrao?.list?.[0]?.['Vehicle-Standard'] ?? [];
+      const veiculoUsuario = listaUsuario?.list?.[0]?.['MODEL-VEHICLE'];
+
+      const listaFinal = veiculoUsuario
+        ? [veiculoUsuario, ...veiculosPadrao.map(v => v.veiculo).filter(v => v !== veiculoUsuario)]
+        : veiculosPadrao.map(v => v.veiculo);
+
+      setVeiculosDisponiveis(listaFinal);
+      setVeiculoSelecionado(veiculoUsuario || listaFinal[0]);
+    } catch (err) {
+      console.error('Erro ao carregar veículos disponíveis:', err);
+    }
+  };
+
+
+
+  const fetchLitrosPorVeiculo = async (modelo) => {
+    try {
+      const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
+      const cpf = usuario?.['UnicID-CPF'];
+      const empresa = usuario?.company ?? 'max-fibra';
+
+      // Busca veículos do usuário
+      const resUser = await fetch(
         `https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${cpf})`,
         { headers: { 'xc-token': import.meta.env.VITE_NOCODB_TOKEN } }
       );
-      const veiculo = await res.json();
-      const litros = veiculo?.list?.[0]?.['ABASTECIMENTO-DISPONIVELE-LITRO'];
-      setLitrosRestantes(Number(litros));
+      const dadosUser = await resUser.json();
+      const veiculoUser = dadosUser?.list?.[0];
+      const modeloUser = veiculoUser?.['MODEL-VEHICLE'];
+
+      if (modelo === modeloUser) {
+        const litros = veiculoUser?.['ABASTECIMENTO-DISPONIVELE-LITRO'];
+        setLitrosRestantes(Number(litros));
+        return;
+      }
+
+      // Se for padrão, busca na outra tabela
+      const resPadrao = await fetch(
+        `https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records?where=(Enterprise,eq,${empresa})`,
+        { headers: { 'xc-token': import.meta.env.VITE_NOCODB_TOKEN } }
+      );
+      const dadosPadrao = await resPadrao.json();
+      const veiculosPadrao = dadosPadrao?.list?.[0]?.['Vehicle-Standard'] ?? [];
+      const encontrado = veiculosPadrao.find(v => v.veiculo === modelo);
+      if (encontrado && typeof encontrado['ABASTECIMENTO-DISPONIVELE-LITRO'] === 'number') {
+        setLitrosRestantes(encontrado['ABASTECIMENTO-DISPONIVELE-LITRO']);
+      } else {
+        setLitrosRestantes(0);
+}
+
     } catch (err) {
-      console.error('Erro ao buscar litros restantes:', err);
+      console.error('Erro ao buscar combustível por veículo:', err);
     }
   };
+
+
 
   useEffect(() => {
     const fetchSemana = async () => {
@@ -83,7 +149,7 @@ export default function Home() {
         }
 
         setDiasSemana(semana);
-        await fetchLitrosDisponiveis(cpf);
+        await fetchVeiculosDisponiveis();
       } catch (err) {
         console.error('Erro ao buscar controle KM:', err);
       } finally {
@@ -93,6 +159,13 @@ export default function Home() {
 
     fetchSemana();
   }, []);
+
+  useEffect(() => {
+  if (veiculoSelecionado) {
+    fetchLitrosPorVeiculo(veiculoSelecionado);
+  }
+}, [veiculoSelecionado]);
+
 
   const abrirFinalizacao = (dados) => {
     const kmFinal = dados?.['KM-Control']?.['KM-FINAL'];
@@ -114,59 +187,71 @@ export default function Home() {
 
     setDiasSemana((prev) =>
       prev.map((dia) => {
-        if (
-          dia?.['UnicID-CPF'] === diaSelecionado?.['UnicID-CPF'] &&
-          dayjs(dia.hora).isSame(diaSelecionado.hora, 'day')
-        ) {
-          return {
-            ...dia,
-            'KM-Control': {
-              ...dia['KM-Control'],
-              ...infoAtualizado
-            },
-          };
-        }
-        return dia;
+        const mesmoDia = dayjs(dia.hora).format('YYYY-MM-DDTHH:mm') === dayjs(diaSelecionado.hora).format('YYYY-MM-DDTHH:mm');
+        return mesmoDia
+          ? { ...dia, 'KM-Control': { ...dia['KM-Control'], ...infoAtualizado } }
+          : dia;
       })
     );
+
 
     setMostrarFinalizacao(false);
   };
 
   return (
     <Box p={4} pb="100px">
-      <Heading size="lg" textAlign="center" mb={2}>
+
+      <Heading size="lg" textAlign="center" mb={2} width={"90vw"}>
         ViaCorp - KM Control
       </Heading>
-
-      {litrosRestantes !== null && (
-        <Box textAlign="center" mb={4}>
-          <Box
-            bg={litrosRestantes <= 0 ? 'red.100' : 'blue.100'}
-            color={litrosRestantes <= 0 ? 'red.600' : 'blue.700'}
-            px={4}
-            py={2}
-            borderRadius="md"
-            fontWeight="semibold"
-            fontSize="sm"
-            display="inline-flex"
-            alignItems="center"
-            gap={2}
-          >
-            Combustível restante: {litrosRestantes.toFixed(2)} litros
-            {litrosRestantes <= 0 && (
-              <IconButton
-                icon={<FiPlusCircle />}
-                size="xs"
-                colorScheme="red"
-                variant="ghost"
-                aria-label="Abastecer agora"
-                onClick={() => setModalAbastecimentoAberto(true)}
-              />
-            )}
+      {veiculosDisponiveis.length > 0 && (
+          <Box mb={4}>
+            <Select
+              placeholder="Selecione o veículo"
+              value={veiculoSelecionado}
+              onChange={(e) => {
+                const novoVeiculo = e.target.value;
+                setVeiculoSelecionado(novoVeiculo);
+                fetchLitrosPorVeiculo(novoVeiculo);
+              }}
+            >
+              {veiculosDisponiveis.map((v, i) => (
+                <option key={i} value={v}>{v}</option>
+              ))}
+            </Select>
           </Box>
-        </Box>
-      )}
+        )}
+
+
+        {typeof litrosRestantes === 'number' && !isNaN(litrosRestantes) && (
+          <Box textAlign="center" mb={4}>
+            <Box
+              bg={litrosRestantes <= 0 ? 'red.100' : 'blue.100'}
+              color={litrosRestantes <= 0 ? 'red.600' : 'blue.700'}
+              px={4}
+              py={2}
+              borderRadius="md"
+              fontWeight="semibold"
+              fontSize="sm"
+              display="inline-flex"
+              alignItems="center"
+              gap={2}
+            >
+              Combustível restante: {litrosRestantes.toFixed(2)} litros
+              {litrosRestantes <= 0 && (
+                <IconButton
+                  icon={<FiPlusCircle />}
+                  size="xs"
+                  colorScheme="red"
+                  variant="ghost"
+                  aria-label="Abastecer agora"
+                  onClick={() => setModalAbastecimentoAberto(true)}
+                />
+              )}
+            </Box>
+          </Box>
+        )}
+
 
       {carregando ? (
         <Spinner size="lg" />
@@ -196,7 +281,8 @@ export default function Home() {
           <ModalAbastecimentoZerado
             isOpen={modalAbastecimentoAberto}
             onClose={() => setModalAbastecimentoAberto(false)}
-            onSucesso={(novoValor) => setLitrosRestantes(novoValor)} // ✅ atualiza na hora
+            onSucesso={(novoValor) => setLitrosRestantes(novoValor)}
+            veiculo={veiculoSelecionado}
           />
         </>
       )}

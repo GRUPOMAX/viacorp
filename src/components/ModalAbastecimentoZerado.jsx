@@ -8,7 +8,7 @@ import dayjs from 'dayjs';
 
 const NOCODB_TOKEN = import.meta.env.VITE_NOCODB_TOKEN;
 
-export default function ModalAbastecimentoZerado({ isOpen, onClose, onSucesso }) {
+export default function ModalAbastecimentoZerado({ isOpen, onClose, onSucesso, veiculo }) {
   const [tipoCombustivel, setTipoCombustivel] = useState('');
   const [valorAbastecido, setValorAbastecido] = useState('');
   const [precoPorLitro, setPrecoPorLitro] = useState('');
@@ -54,29 +54,93 @@ export default function ModalAbastecimentoZerado({ isOpen, onClose, onSucesso })
 
     const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
     const cpf = usuario?.['UnicID-CPF'];
+    const empresa = usuario?.company ?? 'max-fibra';
     const dataHoje = dayjs().format('YYYY-MM-DD');
     const valorNum = Number(valorAbastecido.replace(/[^\d]/g, '')) / 100;
     const precoNum = Number(precoPorLitro.replace(/[^\d]/g, '')) / 100;
+    const novoLitros = parseFloat((valorNum / precoNum).toFixed(2));
 
     if (!precoNum || precoNum <= 0) {
         toast({ title: 'Preço por litro inválido.', status: 'warning', isClosable: true });
         return;
     }
 
-    const res = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${cpf})`, {
+    // Verifica se é veículo da empresa
+    const resEmpresa = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records?where=(Enterprise,eq,${empresa})`, {
+        headers: { 'xc-token': NOCODB_TOKEN }
+    });
+    const dataEmpresa = await resEmpresa.json();
+    const listaPadrao = dataEmpresa?.list?.[0];
+    const veiculosEmpresa = listaPadrao?.['Vehicle-Standard'] ?? [];
+
+    const isVeiculoEmpresa = veiculosEmpresa.some(v => v.veiculo === veiculo);
+
+    if (isVeiculoEmpresa && listaPadrao?.Id) {
+        // Atualiza comprovante na tabela da empresa
+        const novoRegistro = {
+        veiculo,
+        data: dataHoje,
+        tipo: tipoCombustivel,
+        valor: valorAbastecido,
+        preco_litro: precoPorLitro,
+        litros: novoLitros,
+        comprovantes: comprovantes.filter(Boolean)
+        };
+
+        const novosComprovantes = [...(listaPadrao['comprovante'] || []), novoRegistro];
+
+        const veiculosAtualizados = (listaPadrao['Vehicle-Standard'] || []).map(v => {
+          if (v.veiculo === veiculo) {
+            const litrosAntigos = v['ABASTECIMENTO-DISPONIVELE-LITRO'] ?? 0;
+            return {
+              ...v,
+              'ABASTECIMENTO-DISPONIVELE-LITRO': parseFloat((litrosAntigos + novoLitros).toFixed(2)),
+            };
+          }
+          return v;
+        });
+
+        const resposta = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'xc-token': NOCODB_TOKEN,
+          },
+          body: JSON.stringify({
+            Id: listaPadrao.Id,
+            comprovante: novosComprovantes,
+            'Vehicle-Standard': veiculosAtualizados
+          })
+        });
+
+
+        if (!resposta.ok) {
+        const erro = await resposta.text();
+        toast({ title: 'Erro ao salvar na empresa.', description: erro, status: 'error', isClosable: true });
+        return;
+        }
+
+       toast({ title: 'Abastecimento salvo na empresa.', status: 'success', isClosable: true });
+        onSucesso?.(veiculosAtualizados.find(v => v.veiculo === veiculo)?.['ABASTECIMENTO-DISPONIVELE-LITRO'] || 0);
+        onClose();
+        resetarCampos();
+        return;
+    }
+
+    // Caso contrário, salvar no modelo de veículo do usuário
+    const res = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(MODEL-VEHICLE,eq,${veiculo})`, {
         headers: { 'xc-token': NOCODB_TOKEN }
     });
 
     const dados = await res.json();
-    const veiculo = dados?.list?.[0];
+    const veiculoUser = dados?.list?.[0];
 
-    if (!veiculo || !veiculo.Id) {
-        toast({ title: 'Veículo não encontrado ou ID ausente.', status: 'error', isClosable: true });
+    if (!veiculoUser || !veiculoUser.Id) {
+        toast({ title: 'Veículo do usuário não encontrado.', status: 'error', isClosable: true });
         return;
     }
 
-    const litrosAntigos = veiculo['ABASTECIMENTO-DISPONIVELE-LITRO'] ?? 0;
-    const novoLitros = parseFloat((valorNum / precoNum).toFixed(2));
+    const litrosAntigos = veiculoUser['ABASTECIMENTO-DISPONIVELE-LITRO'] ?? 0;
     const litrosAtualizados = parseFloat((litrosAntigos + novoLitros).toFixed(2));
 
     const abastecimentoZerado = {
@@ -89,12 +153,10 @@ export default function ModalAbastecimentoZerado({ isOpen, onClose, onSucesso })
     };
 
     const payload = {
-        Id: veiculo.Id, // ESSENCIAL
+        Id: veiculoUser.Id,
         'ABASTECIMENTO-DISPONIVELE-LITRO': litrosAtualizados,
-        'ABASTECIMENTO-ZERADO': [...(veiculo['ABASTECIMENTO-ZERADO'] || []), abastecimentoZerado],
+        'ABASTECIMENTO-ZERADO': [...(veiculoUser['ABASTECIMENTO-ZERADO'] || []), abastecimentoZerado],
     };
-
-    console.log('Payload FINAL:', payload);
 
     const resposta = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records`, {
         method: 'PATCH',
@@ -107,20 +169,17 @@ export default function ModalAbastecimentoZerado({ isOpen, onClose, onSucesso })
 
     if (!resposta.ok) {
         const erro = await resposta.text();
-        console.error('ERRO NO PATCH:', erro);
-        toast({ title: 'Erro ao salvar.', description: erro, status: 'error', isClosable: true });
+        toast({ title: 'Erro ao salvar no usuário.', description: erro, status: 'error', isClosable: true });
         return;
     }
 
-    toast({ title: 'Abastecimento salvo.', status: 'success', isClosable: true });
-
-    // Atualiza dinamicamente os litros na tela
-    onSucesso?.(litrosAtualizados); // Passa o novo valor para o Home
-
+    toast({ title: 'Abastecimento salvo no usuário.', status: 'success', isClosable: true });
+    onSucesso?.(litrosAtualizados);
     onClose();
+    resetarCampos();
+    };
 
-
-    // Reset
+    const resetarCampos = () => {
     setTipoCombustivel('');
     setValorAbastecido('');
     setPrecoPorLitro('');

@@ -77,11 +77,12 @@ return (
           {totalKm} {unidade} rodados
         </Text>
       )}
-      {dados?.['KM-Control']?.['CONSUMO_REAL_KM_L'] && (
+      {typeof dados?.['KM-Control']?.['LITROS_CONSUMIDOS'] === 'number' && (
         <Text fontSize="sm" fontWeight="medium" color="blue.600">
-          Consumo: {dados['KM-Control']['CONSUMO_REAL_KM_L']} km/L
+          {dados['KM-Control']['LITROS_CONSUMIDOS'].toFixed(2)} litros consumidos
         </Text>
       )}
+
 
     </VStack>
 
