@@ -13,8 +13,17 @@ export default defineConfig({
         'icons/icon-192x192.png',
         'icons/icon-512x512.png',
       ],
-      // Define o manifest diretamente aqui ou use o arquivo externo
-      manifest: false, // Se você tem um manifest.json na pasta public
+      manifest: {
+        name: 'ViaCorp - KM Control',
+        short_name: 'ViaCorp',
+        start_url: '/viacorp/',
+        display: 'standalone',
+        theme_color: '#ffffff',
+        icons: [
+          { src: '/viacorp/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/viacorp/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+        ],
+      },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png}'],
         globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js'],
