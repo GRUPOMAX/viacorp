@@ -1,5 +1,6 @@
 import { Box, Heading, Spinner, IconButton, Select  } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
+import { keyframes } from '@emotion/react';
 import ModalInicioDoDia from '../components/ModalInicioDoDia';
 import CardDiaRodando from '../components/CardDiaRodando';
 import ModalFinalizarDia from '../components/ModalFinalizarDia';
@@ -29,6 +30,13 @@ export default function Home() {
   const [veiculosDisponiveis, setVeiculosDisponiveis] = useState([]);
   const [veiculoSelecionado, setVeiculoSelecionado] = useState('');
 
+
+  // 🔁 Animação de pulsação
+  const pulse = keyframes`
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+  `;
 
 
   const fetchVeiculosDisponiveis = async () => {
@@ -242,11 +250,10 @@ export default function Home() {
               gap={2}
               transition="all 0.2s"
               _hover={litrosRestantes <= 0 ? { bg: 'red.200' } : {}}
+              animation={litrosRestantes <= 0 ? `${pulse} 1.5s infinite` : 'none'}
             >
               Combustível restante: {litrosRestantes.toFixed(2)} litros
-              {litrosRestantes <= 0 && (
-                <FiPlusCircle />
-              )}
+              {litrosRestantes <= 0 && <FiPlusCircle />}
             </Box>
 
           </Box>
