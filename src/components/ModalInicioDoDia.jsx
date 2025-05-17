@@ -28,50 +28,60 @@ export default function ModalInicioDoDia({ onSalvar, veiculoSelecionado }) {
   const [opcoesVeiculos, setOpcoesVeiculos] = useState([]);
   const toast = useToast();
 
-  useEffect(() => {
-    const carregarVeiculos = async () => {
-      const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
-      if (!usuario?.CPF || !usuario?.Enterprise) return;
+useEffect(() => {
+  const carregarVeiculos = async () => {
+    const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
+    const cpf = usuario?.CPF;
+    const empresa = usuario?.Enterprise?.trim();
 
-      try {
-        const resPadrao = await fetch(
-          `https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${usuario.CPF})`,
+    if (!cpf) return;
+
+    try {
+      // Busca dados do usuário
+      const resUser = await fetch(
+        `https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${cpf})`,
+        { headers: { 'xc-token': NOCODB_TOKEN } }
+      );
+      const dadosUser = await resUser.json();
+      const veiculoUsuario = dadosUser?.list?.[0]?.['MODEL-VEHICLE']?.trim();
+
+      let veiculosFinais = [];
+
+      if (empresa) {
+        // Busca dados da empresa
+        const resEmpresa = await fetch(
+          `https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records?where=(Enterprise,eq,${empresa})`,
           { headers: { 'xc-token': NOCODB_TOKEN } }
         );
-        const padraoData = await resPadrao.json();
-        const veiculoUsuario = padraoData?.list?.[0]?.['MODEL-VEHICLE']?.trim();
+        const dadosEmpresa = await resEmpresa.json();
+        const listaEmpresa = dadosEmpresa?.list?.[0]?.['Vehicle-Standard'] ?? [];
 
-        const resVeiculosEmpresa = await fetch(
-          `https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records?where=(Enterprise,eq,${usuario.Enterprise})`,
-          { headers: { 'xc-token': NOCODB_TOKEN } }
-        );
-        const dadosEmpresa = await resVeiculosEmpresa.json();
-        const listaPadrão = dadosEmpresa?.list?.[0]?.['Vehicle-Standard'] || [];
-
-        let veiculosFinais = [...listaPadrão];
-        if (
-          veiculoUsuario &&
-          !listaPadrão.some(v => v.veiculo?.toLowerCase() === veiculoUsuario.toLowerCase())
-        ) {
-          veiculosFinais.unshift({ veiculo: veiculoUsuario });
-        }
-
-        setOpcoesVeiculos(veiculosFinais);
-
-        // ✅ Atualiza o veículo automaticamente com o que veio do componente Home
-        if (veiculoSelecionado) {
-          setVeiculo(veiculoSelecionado);
-        } else if (veiculoUsuario) {
-          setVeiculoPadrao(veiculoUsuario);
-          setVeiculo(veiculoUsuario);
-        }
-      } catch (err) {
-        console.error('Erro ao buscar veículos:', err);
+        // Junta os veículos da empresa com o do usuário (se não estiver duplicado)
+        veiculosFinais = veiculoUsuario
+          ? [veiculoUsuario, ...listaEmpresa.map(v => v.veiculo).filter(v => v !== veiculoUsuario)]
+          : listaEmpresa.map(v => v.veiculo);
+      } else {
+        // Sem empresa, mostra apenas o do usuário
+        veiculosFinais = veiculoUsuario ? [veiculoUsuario] : [];
       }
-    };
 
-    carregarVeiculos();
-  }, [veiculoSelecionado]);
+      // Atualiza estados
+      setOpcoesVeiculos(veiculosFinais.map(v => typeof v === 'string' ? { veiculo: v } : v));
+      setVeiculoPadrao(veiculoUsuario);
+
+      if (veiculoSelecionado) {
+        setVeiculo(veiculoSelecionado);
+      } else if (veiculoUsuario) {
+        setVeiculo(veiculoUsuario);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar veículos:', err);
+    }
+  };
+
+  carregarVeiculos();
+}, [veiculoSelecionado]);
+
 
 
 

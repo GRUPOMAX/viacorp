@@ -43,33 +43,42 @@ export default function Home() {
     try {
       const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
       const cpf = usuario?.['UnicID-CPF'];
-      const empresa = usuario?.company ?? 'max-fibra';
+      const empresa = usuario?.Enterprise?.trim();
 
-      const [resPadrao, resUsuario] = await Promise.all([
-        fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records?where=(Enterprise,eq,${empresa})`, {
+      // Sempre busca os dados do usuário
+      const resUsuario = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${cpf})`, {
+        headers: { 'xc-token': import.meta.env.VITE_NOCODB_TOKEN }
+      });
+
+      const dadosUsuario = await resUsuario.json();
+      const veiculoUsuario = dadosUsuario?.list?.[0]?.['MODEL-VEHICLE'];
+
+      // Se o usuário estiver vinculado a uma empresa, tenta buscar veículos da empresa
+      if (empresa) {
+        const resEmpresa = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records?where=(Enterprise,eq,${empresa})`, {
           headers: { 'xc-token': import.meta.env.VITE_NOCODB_TOKEN }
-        }),
-        fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${cpf})`, {
-          headers: { 'xc-token': import.meta.env.VITE_NOCODB_TOKEN }
-        }),
-      ]);
+        });
 
-      const listaPadrao = await resPadrao.json();
-      const listaUsuario = await resUsuario.json();
+        const dadosEmpresa = await resEmpresa.json();
+        const veiculosPadrao = dadosEmpresa?.list?.[0]?.['Vehicle-Standard'] ?? [];
 
-      const veiculosPadrao = listaPadrao?.list?.[0]?.['Vehicle-Standard'] ?? [];
-      const veiculoUsuario = listaUsuario?.list?.[0]?.['MODEL-VEHICLE'];
+        // Evita duplicata caso o veículo do usuário esteja na lista padrão
+        const listaFinal = veiculoUsuario
+          ? [veiculoUsuario, ...veiculosPadrao.map(v => v.veiculo).filter(v => v !== veiculoUsuario)]
+          : veiculosPadrao.map(v => v.veiculo);
 
-      const listaFinal = veiculoUsuario
-        ? [veiculoUsuario, ...veiculosPadrao.map(v => v.veiculo).filter(v => v !== veiculoUsuario)]
-        : veiculosPadrao.map(v => v.veiculo);
-
-      setVeiculosDisponiveis(listaFinal);
-      setVeiculoSelecionado(veiculoUsuario || listaFinal[0]);
+        setVeiculosDisponiveis(listaFinal);
+        setVeiculoSelecionado(veiculoUsuario || listaFinal[0]);
+      } else {
+        // Sem empresa vinculada, usa somente o veículo do usuário
+        setVeiculosDisponiveis(veiculoUsuario ? [veiculoUsuario] : []);
+        setVeiculoSelecionado(veiculoUsuario || '');
+      }
     } catch (err) {
       console.error('Erro ao carregar veículos disponíveis:', err);
     }
   };
+
 
 
 
