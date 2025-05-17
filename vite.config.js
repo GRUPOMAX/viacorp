@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-  base: '/viacorp/', // Nome do repositório
+  base: '/', // Nome do repositório
   plugins: [
     react(),
     VitePWA({
@@ -16,7 +16,7 @@ export default defineConfig({
       manifest: {
         name: 'ViaCorp - KM Control',
         short_name: 'ViaCorp',
-        start_url: '/viacorp/',
+        start_url: '/',
         display: 'standalone',
         theme_color: '#ffffff',
         icons: [
