@@ -22,7 +22,7 @@ export default function Login({ onLogin }) {
             'xc-token': import.meta.env.VITE_NOCODB_TOKEN
           },
           params: {
-            where: modoCpf ? `(CPF,eq,${cpf})` : `(email,eq,${email})`
+            where: modoCpf ? `(CPF,eq,${limparCPF(cpf)})` : `(email,eq,${email})`
           }
         }
       );
@@ -60,6 +60,19 @@ export default function Login({ onLogin }) {
     }
   };
 
+  // 👉 Função para formatar visualmente
+  const formatarCPF = (valor) => {
+    return valor
+      .replace(/\D/g, '') // remove tudo que não for número
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  };
+
+  // 👉 Função para remover formatação (apenas números)
+  const limparCPF = (valor) => valor.replace(/\D/g, '');
+
+
   return (
     <Box
       h="100vh"
@@ -92,7 +105,7 @@ export default function Login({ onLogin }) {
             {modoCpf ? (
               <Input
                 placeholder="Digite seu CPF"
-                value={cpf}
+                value={formatarCPF(cpf)}
                 onChange={(e) => setCpf(e.target.value)}
                 bg="gray.50"
                 _focus={{ bg: 'white' }}
