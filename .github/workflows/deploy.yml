@@ -27,6 +27,13 @@ jobs:
       - name: 🛠️ Build do projeto
         run: npm run build
 
+      - name: ✅ Verificar pasta de build
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "Erro: A pasta 'dist' não foi gerada!"
+            exit 1
+          fi
+
       - name: 🚀 Deploy para o GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
