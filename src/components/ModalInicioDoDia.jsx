@@ -74,6 +74,9 @@ useEffect(() => {
 }, []);
 
 
+
+
+
   const uploadImagem = async (file) => {
     const nomeSemEspacos = file.name.replace(/\s+/g, '_');
     const nomeArquivoCorrigido = encodeURIComponent(nomeSemEspacos);
@@ -132,30 +135,51 @@ useEffect(() => {
       return;
     }
 
-    const agora = dayjs();
-    const hora = agora.format('HH:mm');
-    const data = agora.format('YYYY-MM-DD');
-
-    const dadosDoDia = {
-      "KM-INICIAL": Number(kmInicial),
-      "HORA_KM-INICIAL": hora,
-      "URL_IMG-KM-INICIAL": fotoKm || '',
-      "KM-FINAL": 0,
-      "HORA_KM-FINAL": '',
-      "URL_IMG-KM-FINAL": '',
-      "TOTAL-KM_RODADO": 0,
-      "ABASTECEU": false,
-      "VALOR_ABASTECIMENTO": '',
-      "TIPO_DE_ABASTECIMENTO": '',
-      "URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_1": '',
-      "URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_2": '',
-      "OBSERVAÇÃO": '',
-      "VEICULO": veiculo
-    };
-
-    setCarregando(true);
     try {
-        await salvarRegistroKm(usuario.CPF, dadosDoDia, data);
+      setCarregando(true);
+
+      // 🔎 Verifica litros disponíveis antes de prosseguir
+      const res = await fetch(
+        `https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${usuario.CPF})`,
+        { headers: { 'xc-token': NOCODB_TOKEN } }
+      );
+
+      const dadosVeiculo = await res.json();
+      const litrosDisponiveis = dadosVeiculo?.list?.[0]?.['ABASTECIMENTO-DISPONIVELE-LITRO'] ?? 0;
+
+      if (litrosDisponiveis <= 0) {
+        toast({
+          title: 'Litros zerados',
+          description: 'Não é possível iniciar o dia sem combustível disponível.',
+          status: 'error',
+          isClosable: true,
+        });
+        setCarregando(false);
+        return;
+      }
+
+      const agora = dayjs();
+      const hora = agora.format('HH:mm');
+      const data = agora.format('YYYY-MM-DD');
+
+      const dadosDoDia = {
+        "KM-INICIAL": Number(kmInicial),
+        "HORA_KM-INICIAL": hora,
+        "URL_IMG-KM-INICIAL": fotoKm || '',
+        "KM-FINAL": 0,
+        "HORA_KM-FINAL": '',
+        "URL_IMG-KM-FINAL": '',
+        "TOTAL-KM_RODADO": 0,
+        "ABASTECEU": false,
+        "VALOR_ABASTECIMENTO": '',
+        "TIPO_DE_ABASTECIMENTO": '',
+        "URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_1": '',
+        "URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_2": '',
+        "OBSERVAÇÃO": '',
+        "VEICULO": veiculo
+      };
+
+      await salvarRegistroKm(usuario.CPF, dadosDoDia, data);
 
       toast({
         title: 'Início do dia registrado!',
@@ -169,6 +193,8 @@ useEffect(() => {
         'KM-Control': dadosDoDia,
         'UnicID-CPF': usuario.CPF,
       });
+
+      // Limpa estado
       setVeiculo('');
       setKmInicial('');
       setFotoKm(null);
@@ -185,6 +211,7 @@ useEffect(() => {
       setCarregando(false);
     }
   };
+
 
   const handleUpload = async (e) => {
     const file = e.target.files[0];

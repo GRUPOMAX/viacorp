@@ -143,6 +143,17 @@ const gerarImagem = async () => {
               </Text>
             </Box>
 
+            {/* Sempre mostra consumo e litros restantes, mesmo sem abastecimento */}
+            {(km?.['LITROS_CONSUMIDOS'] !== undefined || km?.['LITROS_RESTANTES_APOS'] !== undefined) && (
+              <Box p={3} bg="purple.50" borderRadius="md">
+                <HStack justify="space-between">
+                  <Text><strong>Litros consumidos:</strong> {km?.['LITROS_CONSUMIDOS'] ?? '-'} L</Text>
+                  <Text><strong>Litros restantes:</strong> {km?.['LITROS_RESTANTES_APOS'] ?? '-'} L</Text>
+                </HStack>
+              </Box>
+            )}
+
+
             {km?.ABASTECEU && (
               <Box p={3} bg="blue.50" borderRadius="md">
                 <Badge
@@ -174,6 +185,25 @@ const gerarImagem = async () => {
                   <Text><strong>Tipo:</strong> {km?.['TIPO_DE_ABASTECIMENTO']}</Text>
                   <Text><strong>Valor:</strong> {km?.['VALOR_ABASTECIMENTO']}</Text>
                 </HStack>
+
+                <HStack justify="space-between" mt={2}>
+                  <Text><strong>Litros:</strong> {km?.['LITROS_ABASTECIDOS'] ?? '-'} L</Text>
+                  <Text><strong>Preço por litro:</strong> {km?.['PRECO_POR_LITRO'] ?? '-'}</Text>
+                </HStack>
+
+                  <HStack justify="space-between" mt={2}>
+                    <Text><strong>Consumo real:</strong> {km?.['CONSUMO_REAL_KM_L'] ?? '-'} km/L</Text>
+                    <Text><strong>Performance padrão:</strong> {km?.['PERFORMANCE_PADRAO_KM_L'] ?? '-'} km/L</Text>
+                  </HStack>
+
+                  <HStack justify="space-between" mt={2}>
+                    <Text><strong>Litros consumidos:</strong> {km?.['LITROS_CONSUMIDOS'] ?? '-'} L</Text>
+                    <Text><strong>Litros restantes:</strong> {km?.['LITROS_RESTANTES_APOS'] ?? '-'} L</Text>
+                  </HStack>
+
+
+
+
               </Box>
             )}
 

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton,
   Button, Input, VStack, HStack, IconButton, Select, Image, useToast, Checkbox, Text, Box
@@ -19,7 +20,30 @@ export default function ModalFinalizarDia({ isOpen, onClose, onSalvar, dadosDia 
   const [comprovantes, setComprovantes] = useState([]);
   const [observacao, setObservacao] = useState('');
   const [mostrarObs, setMostrarObs] = useState(false);
+  const [precoLitro, setPrecoLitro] = useState('');
+  const [kmPorLitroPadrao, setKmPorLitroPadrao] = useState(0);
+
   const toast = useToast();
+
+  useEffect(() => {
+  const buscarPerformance = async () => {
+    const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
+    const cpf = usuario?.['UnicID-CPF'];
+
+    const res = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${cpf})`, {
+      headers: {
+        'xc-token': NOCODB_TOKEN
+      }
+    });
+
+    const dados = await res.json();
+    const kmPerformance = dados?.list?.[0]?.['KM-PERFORMACE'];
+    setKmPorLitroPadrao(kmPerformance || 0);
+  };
+
+  if (isOpen) buscarPerformance();
+}, [isOpen]);
+
 
   const uploadImagem = async (file) => {
     const nomeSemEspacos = file.name.replace(/\s+/g, '_');
@@ -117,6 +141,53 @@ export default function ModalFinalizarDia({ isOpen, onClose, onSalvar, dadosDia 
         if (unidade === 'cm') totalKm *= 100;
       }
 
+      // Conversões
+      const valorTotal = Number(valorAbastecido.replace(/[^\d]/g, '')) / 100;
+      const precoPorLitro = Number(precoLitro.replace(/[^\d]/g, '')) / 100;
+
+      const litrosAbastecidos = (houveAbastecimento && valorTotal && precoPorLitro)
+        ? parseFloat((valorTotal / precoPorLitro).toFixed(2))
+        : 0;
+
+      const consumoReal = (litrosAbastecidos && totalKm > 0)
+        ? parseFloat((totalKm / litrosAbastecidos).toFixed(2))
+        : 0;
+
+      // ✅ Atualiza litros disponíveis no veículo
+      const res = await fetch(
+        `https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${cpf})`,
+        { headers: { 'xc-token': NOCODB_TOKEN } }
+      );
+      const dadosVeiculo = await res.json();
+      const registroId = dadosVeiculo?.list?.[0]?.Id;
+      const litrosAntes = dadosVeiculo?.list?.[0]?.['ABASTECIMENTO-DISPONIVELE-LITRO'] ?? 0;
+      const litrosConsumidos = kmPorLitroPadrao > 0 ? parseFloat((totalKm / kmPorLitroPadrao).toFixed(2)) : 0;
+
+      let litrosAtualizados = parseFloat(litrosAntes) || 0;
+
+      if (houveAbastecimento) {
+        litrosAtualizados += litrosAbastecidos;
+      }
+
+      // Sempre subtrai o consumo
+      litrosAtualizados -= litrosConsumidos;
+      litrosAtualizados = Math.max(0, parseFloat(litrosAtualizados.toFixed(2))); // Evita valor negativo
+
+
+      if (registroId !== undefined) {
+        await fetch('https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'xc-token': NOCODB_TOKEN,
+          },
+          body: JSON.stringify({
+            "Id": registroId,
+            "ABASTECIMENTO-DISPONIVELE-LITRO": litrosAtualizados
+          }),
+        });
+      }
+
       const dadosAtualizados = {
         ...dadosDia['KM-Control'],
         'KM-FINAL': kmFinalNumber,
@@ -130,7 +201,12 @@ export default function ModalFinalizarDia({ isOpen, onClose, onSalvar, dadosDia 
         'URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_1': comprovantes[0] || '',
         'URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_2': comprovantes[1] || '',
         'OBSERVAÇÃO': observacao,
-
+        'LITROS_ABASTECIDOS': litrosAbastecidos,
+        'CONSUMO_REAL_KM_L': consumoReal,
+        'PERFORMANCE_PADRAO_KM_L': kmPorLitroPadrao,
+        'PRECO_POR_LITRO': precoLitro,
+        'LITROS_CONSUMIDOS': litrosConsumidos,
+        'LITROS_RESTANTES_APOS': litrosAtualizados,
         ...(dataHoje !== dataRegistro && { 'DATA_FINALIZACAO': dataHoje })
       };
 
@@ -150,6 +226,7 @@ export default function ModalFinalizarDia({ isOpen, onClose, onSalvar, dadosDia 
       setHouveAbastecimento(false);
       setTipoCombustivel('');
       setValorAbastecido('');
+      setPrecoLitro('');
       setFotoKmFinal(null);
       setComprovantes([]);
     } catch (err) {
@@ -161,6 +238,8 @@ export default function ModalFinalizarDia({ isOpen, onClose, onSalvar, dadosDia 
       });
     }
   };
+
+
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
@@ -275,6 +354,22 @@ export default function ModalFinalizarDia({ isOpen, onClose, onSalvar, dadosDia 
                       setValorAbastecido(formatted);
                     }}
                   />
+
+                  <Input
+                    placeholder="Preço por litro (R$)"
+                    inputMode="numeric"
+                    value={precoLitro}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, '');
+                      const formatted = (Number(raw) / 100).toLocaleString('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                        minimumFractionDigits: 2,
+                      });
+                      setPrecoLitro(formatted);
+                    }}
+                  />
+
 
 
                 {comprovantes.length > 0 && (

@@ -77,6 +77,12 @@ return (
           {totalKm} {unidade} rodados
         </Text>
       )}
+      {dados?.['KM-Control']?.['CONSUMO_REAL_KM_L'] && (
+        <Text fontSize="sm" fontWeight="medium" color="blue.600">
+          Consumo: {dados['KM-Control']['CONSUMO_REAL_KM_L']} km/L
+        </Text>
+      )}
+
     </VStack>
 
     {/* ÍCONE POSICIONADO NO CANTO INFERIOR DIREITO */}
