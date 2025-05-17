@@ -226,6 +226,10 @@ export default function Home() {
         {typeof litrosRestantes === 'number' && !isNaN(litrosRestantes) && (
           <Box textAlign="center" mb={4}>
             <Box
+              onClick={() => {
+                if (litrosRestantes <= 0) setModalAbastecimentoAberto(true);
+              }}
+              cursor={litrosRestantes <= 0 ? 'pointer' : 'default'}
               bg={litrosRestantes <= 0 ? 'red.100' : 'blue.100'}
               color={litrosRestantes <= 0 ? 'red.600' : 'blue.700'}
               px={4}
@@ -236,19 +240,15 @@ export default function Home() {
               display="inline-flex"
               alignItems="center"
               gap={2}
+              transition="all 0.2s"
+              _hover={litrosRestantes <= 0 ? { bg: 'red.200' } : {}}
             >
               Combustível restante: {litrosRestantes.toFixed(2)} litros
               {litrosRestantes <= 0 && (
-                <IconButton
-                  icon={<FiPlusCircle />}
-                  size="xs"
-                  colorScheme="red"
-                  variant="ghost"
-                  aria-label="Abastecer agora"
-                  onClick={() => setModalAbastecimentoAberto(true)}
-                />
+                <FiPlusCircle />
               )}
             </Box>
+
           </Box>
         )}
 
