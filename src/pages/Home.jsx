@@ -257,11 +257,15 @@ export default function Home() {
         <Spinner size="lg" />
       ) : (
         <>
-          {diasSemana.map((dia, index) => (
-            <CardDiaRodando key={index} dados={dia} aoClicar={() => abrirFinalizacao(dia)} />
+          {[...diasSemana]
+            .sort((a, b) => new Date(b.hora) - new Date(a.hora))
+            .slice(0, 3)
+            .map((dia, index) => (
+              <CardDiaRodando key={index} dados={dia} aoClicar={() => abrirFinalizacao(dia)} />
           ))}
 
           <ModalInicioDoDia
+            veiculoSelecionado={veiculoSelecionado}
             onSalvar={(d) => setDiasSemana((prev) => [...prev, d])}
           />
 

@@ -26,23 +26,23 @@ export default function ModalFinalizarDia({ isOpen, onClose, onSalvar, dadosDia 
   const toast = useToast();
 
   useEffect(() => {
-  const buscarPerformance = async () => {
-    const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
-    const cpf = usuario?.['UnicID-CPF'];
+    const buscarPerformance = async () => {
+      const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
+      const cpf = usuario?.['UnicID-CPF'];
 
-    const res = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${cpf})`, {
-      headers: {
-        'xc-token': NOCODB_TOKEN
-      }
-    });
+      const res = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${cpf})`, {
+        headers: {
+          'xc-token': NOCODB_TOKEN
+        }
+      });
 
-    const dados = await res.json();
-    const kmPerformance = dados?.list?.[0]?.['KM-PERFORMACE'];
-    setKmPorLitroPadrao(kmPerformance || 0);
-  };
+      const dados = await res.json();
+      const kmPerformance = dados?.list?.[0]?.['KM-PERFORMACE'];
+      setKmPorLitroPadrao(kmPerformance || 0);
+    };
 
-  if (isOpen) buscarPerformance();
-}, [isOpen]);
+    if (isOpen) buscarPerformance();
+  }, [isOpen]);
 
 
   const uploadImagem = async (file) => {
@@ -135,6 +135,29 @@ const handleSalvar = async () => {
 
     const kmInicial = parseFloat(dadosDia?.['KM-Control']?.['KM-INICIAL'] || 0);
     const kmFinalNumber = parseFloat(kmFinal);
+
+        // 🛑 Verificação
+    if (kmFinalNumber < kmInicial) {
+      toast({
+        title: 'KM Final inválido',
+        description: 'O KM final não pode ser menor que o KM inicial.',
+        status: 'error',
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (kmFinalNumber > 999999 || kmFinalNumber < 0) {
+      toast({
+        title: 'Valor fora do limite permitido',
+        description: 'Digite um valor de KM final válido.',
+        status: 'warning',
+        isClosable: true,
+      });
+      return;
+    }
+
+
     let totalKm = kmFinalNumber - kmInicial;
     let unidade = 'km';
 
@@ -296,7 +319,7 @@ const handleSalvar = async () => {
 };
 
 
-
+  const kmInicial = parseFloat(dadosDia?.['KM-Control']?.['KM-INICIAL'] || 0);
 
 
 
@@ -310,6 +333,12 @@ const handleSalvar = async () => {
           <VStack spacing={4}>
             <HStack w="100%">
               <Input
+                isReadOnly
+                value={kmInicial}
+                bg="gray.100"
+                fontWeight="semibold"
+              />
+              <Input
                 placeholder="KM Final"
                 inputMode="numeric"
                 pattern="[0-9]*"
@@ -319,7 +348,6 @@ const handleSalvar = async () => {
                   if (/^\d*$/.test(value)) setKmFinal(value);
                 }}
               />
-
               <label>
                 <IconButton
                   icon={<FiCamera />}

@@ -17,7 +17,7 @@ dayjs.locale('pt-br');
 
 const NOCODB_TOKEN = import.meta.env.VITE_NOCODB_TOKEN;
 
-export default function ModalInicioDoDia({ onSalvar }) {
+export default function ModalInicioDoDia({ onSalvar, veiculoSelecionado }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [veiculo, setVeiculo] = useState('');
   const [kmInicial, setKmInicial] = useState('');
@@ -28,50 +28,50 @@ export default function ModalInicioDoDia({ onSalvar }) {
   const [opcoesVeiculos, setOpcoesVeiculos] = useState([]);
   const toast = useToast();
 
+  useEffect(() => {
+    const carregarVeiculos = async () => {
+      const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
+      if (!usuario?.CPF || !usuario?.Enterprise) return;
 
-useEffect(() => {
-  const carregarVeiculos = async () => {
-    const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
-    if (!usuario?.CPF || !usuario?.Enterprise) return;
+      try {
+        const resPadrao = await fetch(
+          `https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${usuario.CPF})`,
+          { headers: { 'xc-token': NOCODB_TOKEN } }
+        );
+        const padraoData = await resPadrao.json();
+        const veiculoUsuario = padraoData?.list?.[0]?.['MODEL-VEHICLE']?.trim();
 
-    try {
-      // 1. Buscar veículo padrão do usuário
-      const resPadrao = await fetch(
-        `https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${usuario.CPF})`,
-        { headers: { 'xc-token': NOCODB_TOKEN } }
-      );
-      const padraoData = await resPadrao.json();
-      const veiculoUsuario = padraoData?.list?.[0]?.['MODEL-VEHICLE']?.trim();
+        const resVeiculosEmpresa = await fetch(
+          `https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records?where=(Enterprise,eq,${usuario.Enterprise})`,
+          { headers: { 'xc-token': NOCODB_TOKEN } }
+        );
+        const dadosEmpresa = await resVeiculosEmpresa.json();
+        const listaPadrão = dadosEmpresa?.list?.[0]?.['Vehicle-Standard'] || [];
 
-      // 2. Buscar veículos padrão da empresa
-      const resVeiculosEmpresa = await fetch(
-        `https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records?where=(Enterprise,eq,${usuario.Enterprise})`,
-        { headers: { 'xc-token': NOCODB_TOKEN } }
-      );
-      const dadosEmpresa = await resVeiculosEmpresa.json();
-      const listaPadrão = dadosEmpresa?.list?.[0]?.['Vehicle-Standard'] || [];
+        let veiculosFinais = [...listaPadrão];
+        if (
+          veiculoUsuario &&
+          !listaPadrão.some(v => v.veiculo?.toLowerCase() === veiculoUsuario.toLowerCase())
+        ) {
+          veiculosFinais.unshift({ veiculo: veiculoUsuario });
+        }
 
-      // 3. Evitar duplicata e combinar
-      let veiculosFinais = [...listaPadrão];
-      if (
-        veiculoUsuario &&
-        !listaPadrão.some(v => v.veiculo?.toLowerCase() === veiculoUsuario.toLowerCase())
-      ) {
-        veiculosFinais.unshift({ veiculo: veiculoUsuario });
+        setOpcoesVeiculos(veiculosFinais);
+
+        // ✅ Atualiza o veículo automaticamente com o que veio do componente Home
+        if (veiculoSelecionado) {
+          setVeiculo(veiculoSelecionado);
+        } else if (veiculoUsuario) {
+          setVeiculoPadrao(veiculoUsuario);
+          setVeiculo(veiculoUsuario);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar veículos:', err);
       }
+    };
 
-      setOpcoesVeiculos(veiculosFinais);
-      if (veiculoUsuario) {
-        setVeiculoPadrao(veiculoUsuario);
-        setVeiculo(veiculoUsuario);
-      }
-    } catch (err) {
-      console.error('Erro ao buscar veículos:', err);
-    }
-  };
-
-  carregarVeiculos();
-}, []);
+    carregarVeiculos();
+  }, [veiculoSelecionado]);
 
 
 
@@ -115,102 +115,121 @@ useEffect(() => {
     }
   };
 
-  const handleSalvar = async () => {
-    if (!veiculo || !kmInicial) {
-      toast({
-        title: 'Preencha todos os campos obrigatórios',
-        status: 'warning',
-        isClosable: true,
-      });
-      return;
-    }
+const handleSalvar = async () => {
+  if (!veiculo || !kmInicial) {
+    toast({
+      title: 'Preencha todos os campos obrigatórios',
+      status: 'warning',
+      isClosable: true,
+    });
+    return;
+  }
 
-    const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
-    if (!usuario?.CPF) {
-      toast({
-        title: 'Erro: usuário não encontrado',
-        status: 'error',
-        isClosable: true,
-      });
-      return;
-    }
+  const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
+  if (!usuario?.CPF || !usuario?.Enterprise) {
+    toast({
+      title: 'Erro: usuário não encontrado',
+      status: 'error',
+      isClosable: true,
+    });
+    return;
+  }
 
-    try {
-      setCarregando(true);
+  try {
+    setCarregando(true);
 
-      // 🔎 Verifica litros disponíveis antes de prosseguir
-      const res = await fetch(
-        `https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${usuario.CPF})`,
+    // 🔍 Busca da tabela do usuário primeiro
+    let litrosDisponiveis = 0;
+
+    const resUser = await fetch(
+      `https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${usuario.CPF})`,
+      { headers: { 'xc-token': NOCODB_TOKEN } }
+    );
+    const dadosUser = await resUser.json();
+    const veiculoUsuario = dadosUser?.list?.[0]?.['MODEL-VEHICLE']?.trim();
+    const litrosUsuario = dadosUser?.list?.[0]?.['ABASTECIMENTO-DISPONIVELE-LITRO'] ?? 0;
+
+    if (veiculo === veiculoUsuario) {
+      litrosDisponiveis = litrosUsuario;
+    } else {
+      // Veículo padrão da empresa
+      const resEmpresa = await fetch(
+        `https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records?where=(Enterprise,eq,${usuario.Enterprise})`,
         { headers: { 'xc-token': NOCODB_TOKEN } }
       );
+      const dadosEmpresa = await resEmpresa.json();
+      const lista = dadosEmpresa?.list?.[0]?.['Vehicle-Standard'] ?? [];
+      const veiculoSelecionadoEmpresa = lista.find(v => v.veiculo === veiculo);
+      litrosDisponiveis = veiculoSelecionadoEmpresa?.['ABASTECIMENTO-DISPONIVELE-LITRO'] ?? 0;
+    }
 
-      const dadosVeiculo = await res.json();
-      const litrosDisponiveis = dadosVeiculo?.list?.[0]?.['ABASTECIMENTO-DISPONIVELE-LITRO'] ?? 0;
-
-      if (litrosDisponiveis <= 0) {
-        toast({
-          title: 'Litros zerados',
-          description: 'Não é possível iniciar o dia sem combustível disponível.',
-          status: 'error',
-          isClosable: true,
-        });
-        setCarregando(false);
-        return;
-      }
-
-      const agora = dayjs();
-      const hora = agora.format('HH:mm');
-      const data = agora.format('YYYY-MM-DD');
-
-      const dadosDoDia = {
-        "KM-INICIAL": Number(kmInicial),
-        "HORA_KM-INICIAL": hora,
-        "URL_IMG-KM-INICIAL": fotoKm || '',
-        "KM-FINAL": 0,
-        "HORA_KM-FINAL": '',
-        "URL_IMG-KM-FINAL": '',
-        "TOTAL-KM_RODADO": 0,
-        "ABASTECEU": false,
-        "VALOR_ABASTECIMENTO": '',
-        "TIPO_DE_ABASTECIMENTO": '',
-        "URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_1": '',
-        "URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_2": '',
-        "OBSERVAÇÃO": '',
-        "VEICULO": veiculo
-      };
-
-      await salvarRegistroKm(usuario.CPF, dadosDoDia, data);
-
+    if (litrosDisponiveis <= 0) {
       toast({
-        title: 'Início do dia registrado!',
-        status: 'success',
-        isClosable: true,
-      });
-
-      onSalvar({
-        hora: agora,
-        veiculo,
-        'KM-Control': dadosDoDia,
-        'UnicID-CPF': usuario.CPF,
-      });
-
-      // Limpa estado
-      setVeiculo('');
-      setKmInicial('');
-      setFotoKm(null);
-      setImgPreview(null);
-      onClose();
-    } catch (err) {
-      toast({
-        title: 'Erro ao salvar no banco',
-        description: 'Verifique sua conexão ou tente novamente.',
+        title: 'Litros zerados',
+        description: 'Não é possível iniciar o dia sem combustível disponível.',
         status: 'error',
         isClosable: true,
       });
-    } finally {
       setCarregando(false);
+      return;
     }
-  };
+
+    // 🕒 Registro
+    const agora = dayjs();
+    const hora = agora.format('HH:mm');
+    const data = agora.format('YYYY-MM-DD');
+
+    const dadosDoDia = {
+      "KM-INICIAL": Number(kmInicial),
+      "HORA_KM-INICIAL": hora,
+      "URL_IMG-KM-INICIAL": fotoKm || '',
+      "KM-FINAL": 0,
+      "HORA_KM-FINAL": '',
+      "URL_IMG-KM-FINAL": '',
+      "TOTAL-KM_RODADO": 0,
+      "ABASTECEU": false,
+      "VALOR_ABASTECIMENTO": '',
+      "TIPO_DE_ABASTECIMENTO": '',
+      "URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_1": '',
+      "URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_2": '',
+      "OBSERVAÇÃO": '',
+      "VEICULO": veiculo
+    };
+
+    await salvarRegistroKm(usuario.CPF, dadosDoDia, data);
+
+    toast({
+      title: 'Início do dia registrado!',
+      status: 'success',
+      isClosable: true,
+    });
+
+    onSalvar({
+      hora: agora,
+      veiculo,
+      'KM-Control': dadosDoDia,
+      'UnicID-CPF': usuario.CPF,
+    });
+
+    // 🧹 Reset
+    setVeiculo('');
+    setKmInicial('');
+    setFotoKm(null);
+    setImgPreview(null);
+    onClose();
+  } catch (err) {
+    toast({
+      title: 'Erro ao salvar no banco',
+      description: 'Verifique sua conexão ou tente novamente.',
+      status: 'error',
+      isClosable: true,
+    });
+  } finally {
+    setCarregando(false);
+  }
+};
+
+
 
 
   const handleUpload = async (e) => {
