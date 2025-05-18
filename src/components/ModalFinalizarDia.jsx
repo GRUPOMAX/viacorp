@@ -192,7 +192,7 @@ const handleSalvar = async () => {
 
     let performancePadrao = veiculoEmpresa?.['KM-PERFORMACE'];
 
-    let registroUser = null; // <- define aqui fora
+    let registroUser = null; // <- Definindo o Registro do Usuario Fora do IF como variavel global
 
     // Se não tiver na empresa, busca do veículo do usuário
     if (!performancePadrao || performancePadrao <= 0) {

@@ -91,10 +91,14 @@ export default function ModalAbastecimentoZerado({ isOpen, onClose, onSucesso, v
 
         const veiculosAtualizados = (listaPadrao['Vehicle-Standard'] || []).map(v => {
           if (v.veiculo === veiculo) {
-            const litrosAntigos = v['ABASTECIMENTO-DISPONIVELE-LITRO'] ?? 0;
+            const litrosAntigos = parseFloat(v['ABASTECIMENTO-DISPONIVELE-LITRO']) || 0;
+            const litrosMaximo = parseFloat(v['LITROS-MAXIMO']) || 60;
+            const novoTotal = litrosAntigos + novoLitros;
+            const litrosAtualizados = novoTotal > litrosMaximo ? litrosMaximo : novoTotal;
+
             return {
               ...v,
-              'ABASTECIMENTO-DISPONIVELE-LITRO': parseFloat((litrosAntigos + novoLitros).toFixed(2)),
+              'ABASTECIMENTO-DISPONIVELE-LITRO': parseFloat(litrosAtualizados.toFixed(2)),
             };
           }
           return v;
@@ -140,17 +144,22 @@ export default function ModalAbastecimentoZerado({ isOpen, onClose, onSucesso, v
         return;
     }
 
-    const litrosAntigos = veiculoUser['ABASTECIMENTO-DISPONIVELE-LITRO'] ?? 0;
-    const litrosAtualizados = parseFloat((litrosAntigos + novoLitros).toFixed(2));
+    const litrosAntigos = parseFloat(veiculoUser['ABASTECIMENTO-DISPONIVELE-LITRO']) || 0;
+    const litrosMaximo = parseFloat(veiculoUser['LITROS-MAXIMO']) || 60;
+    const novoTotal = litrosAntigos + novoLitros;
+    const litrosAtualizados = novoTotal > litrosMaximo ? litrosMaximo : novoTotal;
+
 
     const abastecimentoZerado = {
-        data: dataHoje,
-        tipo: tipoCombustivel,
-        valor: valorAbastecido,
-        preco_litro: precoPorLitro,
-        litros: novoLitros,
-        comprovantes: comprovantes.filter(Boolean),
+      veiculo,
+      data: dataHoje,
+      tipo: tipoCombustivel,
+      valor: valorAbastecido,
+      preco_litro: precoPorLitro,
+      litros: novoLitros,
+      comprovantes: comprovantes.filter(Boolean),
     };
+
 
     const payload = {
         Id: veiculoUser.Id,
