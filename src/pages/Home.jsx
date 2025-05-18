@@ -142,7 +142,8 @@ export default function Home() {
         const registro = res.data.list[0];
         const semana = [];
         const hoje = dayjs();
-        const inicioSemana = hoje.startOf('week').add(1, 'day');
+        const inicioSemana = hoje.startOf('week'); // começa no domingo
+
 
         for (let i = 0; i < 7; i++) {
           const dia = inicioSemana.add(i, 'day');

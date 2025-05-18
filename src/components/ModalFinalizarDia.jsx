@@ -136,7 +136,7 @@ const handleSalvar = async () => {
     const kmInicial = parseFloat(dadosDia?.['KM-Control']?.['KM-INICIAL'] || 0);
     const kmFinalNumber = parseFloat(kmFinal);
 
-        // 🛑 Verificação
+        // 🛑 DEBBUG EVITANDO ERROS -33333,0933
     if (kmFinalNumber < kmInicial) {
       toast({
         title: 'KM Final inválido',
@@ -185,8 +185,14 @@ const handleSalvar = async () => {
     const listaPadrao = registroEmpresa?.['Vehicle-Standard'] ?? [];
 
     // Tentar buscar da empresa
-    const veiculoEmpresa = listaPadrao.find(v => v.veiculo === veiculoAtual);
+    const veiculoEmpresa = listaPadrao.find(
+      (v) => v.veiculo?.trim().toLowerCase() === veiculoAtual?.trim().toLowerCase()
+    );
+    const isVeiculoEmpresa = Boolean(veiculoEmpresa);
+
     let performancePadrao = veiculoEmpresa?.['KM-PERFORMACE'];
+
+    let registroUser = null; // <- define aqui fora
 
     // Se não tiver na empresa, busca do veículo do usuário
     if (!performancePadrao || performancePadrao <= 0) {
@@ -212,12 +218,14 @@ const handleSalvar = async () => {
     // 🔁 Atualiza na tabela certa
     let litrosRestantesFinais = 0;
 
-    if (veiculoEmpresa) {
-      // Atualiza Vehicle-Standard
+
+
+
+    if (isVeiculoEmpresa) {
       const novaLista = listaPadrao.map(v => {
-        if (v.veiculo === veiculoAtual) {
+        if (v.veiculo?.trim().toLowerCase() === veiculoAtual?.trim().toLowerCase()) {
           const atual = parseFloat(v['ABASTECIMENTO-DISPONIVELE-LITRO'] || 0);
-          const novo = Math.max(0, parseFloat((atual - litrosConsumidos).toFixed(2)));
+          const novo = Math.max(0, parseFloat((atual - litrosConsumidos + litrosAbastecidos).toFixed(2)));
           litrosRestantesFinais = novo;
           return { ...v, 'ABASTECIMENTO-DISPONIVELE-LITRO': novo };
         }
@@ -266,6 +274,65 @@ const handleSalvar = async () => {
         });
       }
     }
+    // 👇 DADOS DO ABASTECIMENTO
+    const dadosAbastecimento = {
+      data: dataHoje,
+      valor: valorTotal,
+      litros: litrosAbastecidos,
+      tipo: tipoCombustivel,
+      precoLitro: precoPorLitro,
+      comprovantes: comprovantes.filter(Boolean)
+    };
+
+    if (houveAbastecimento) {
+      if (isVeiculoEmpresa) {
+        const comprovantesExistentes = Array.isArray(registroEmpresa?.comprovante)
+          ? registroEmpresa.comprovante
+          : [];
+
+        const listaAtualizada = listaPadrao.map((v) => {
+          if (v.veiculo?.trim().toLowerCase() === veiculoAtual?.trim().toLowerCase()) {
+            const atual = parseFloat(v['ABASTECIMENTO-DISPONIVELE-LITRO'] || 0);
+            const novo = Math.max(0, parseFloat((atual - litrosConsumidos + litrosAbastecidos).toFixed(2)));
+            return { ...v, 'ABASTECIMENTO-DISPONIVELE-LITRO': novo };
+          }
+          return v;
+        });
+
+        await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'xc-token': NOCODB_TOKEN,
+          },
+          body: JSON.stringify({
+            Id: registroEmpresa?.Id,
+            'Vehicle-Standard': listaAtualizada,
+            'comprovante': [...comprovantesExistentes, dadosAbastecimento]
+          })
+        });
+      } else {
+        const listaZerados = Array.isArray(registroUser?.['ABASTECIMENTO-ZERADO'])
+          ? registroUser['ABASTECIMENTO-ZERADO']
+          : [];
+
+        await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'xc-token': NOCODB_TOKEN,
+          },
+          body: JSON.stringify({
+            Id: registroUser?.Id,
+            'ABASTECIMENTO-ZERADO': [...listaZerados, dadosAbastecimento]
+          })
+        });
+      }
+    }
+
+
+
+
 
     const dadosAtualizados = {
       ...dadosDia['KM-Control'],

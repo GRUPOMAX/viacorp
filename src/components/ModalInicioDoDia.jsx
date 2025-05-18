@@ -56,12 +56,12 @@ useEffect(() => {
         const dadosEmpresa = await resEmpresa.json();
         const listaEmpresa = dadosEmpresa?.list?.[0]?.['Vehicle-Standard'] ?? [];
 
-        // Junta os veículos da empresa com o do usuário (se não estiver duplicado)
+        
         veiculosFinais = veiculoUsuario
           ? [veiculoUsuario, ...listaEmpresa.map(v => v.veiculo).filter(v => v !== veiculoUsuario)]
           : listaEmpresa.map(v => v.veiculo);
       } else {
-        // Sem empresa, mostra apenas o do usuário
+        
         veiculosFinais = veiculoUsuario ? [veiculoUsuario] : [];
       }
 
@@ -162,7 +162,7 @@ const handleSalvar = async () => {
     if (veiculo === veiculoUsuario) {
       litrosDisponiveis = litrosUsuario;
     } else {
-      // Veículo padrão da empresa
+      //
       const resEmpresa = await fetch(
         `https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records?where=(Enterprise,eq,${usuario.Enterprise})`,
         { headers: { 'xc-token': NOCODB_TOKEN } }
@@ -331,7 +331,7 @@ const handleSalvar = async () => {
                     objectFit="cover"
                   />
                   <IconButton
-                    icon={<FiTrash />} // ou use um ícone de lixeira: <FiTrash />
+                    icon={<FiTrash />} 
                     aria-label="Remover imagem"
                     size="xs"
                     position="absolute"

@@ -53,7 +53,7 @@ const gerarImagem = async () => {
 
   await esperarImagensCarregarem(contentRef.current);
 
-  // Adiciona pequeno delay final para layout 100% aplicado
+  
   await new Promise((resolve) => setTimeout(resolve, 100));
 
   const canvas = await html2canvas(contentRef.current);
@@ -79,7 +79,7 @@ const gerarImagem = async () => {
               size="sm"
               position="absolute"
               top="10px"
-              right="50px" // deslocado para não colidir com o "X"
+              right="50px" 
               zIndex="1"
               onClick={gerarImagem}
             />

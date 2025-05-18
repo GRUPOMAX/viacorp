@@ -22,13 +22,13 @@ export default function CardDiaRodando({ dados, aoClicar }) {
 
   const handleClick = () => {
 
-    aoClicar?.(dados); // sempre envia os dados
+    aoClicar?.(dados); 
   };
 
 
 return (
   <Box
-    position="relative" // necessário para posicionar o alerta corretamente
+    position="relative" 
     w="90vw"
     maxW="400px"
     mx="auto"
@@ -44,7 +44,7 @@ return (
     transition="all 0.2s"
     _hover={{ boxShadow: 'lg', transform: 'scale(1.01)' }}
   >
-    {/* TOPO: dia, data, veículo e alerta */}
+
     <HStack justify="space-between" align="center" mb={2}>
       <HStack spacing={2}>
         <Text fontWeight="semibold" fontSize="md">
@@ -60,7 +60,7 @@ return (
       </Badge>
     </HStack>
 
-    {/* CENTRO: informações do percurso */}
+
     <VStack align="start" spacing={1}>
       <Text fontSize="sm" color="gray.500">
         Iniciado às {dayjs(dados.hora).format('HH:mm')}
@@ -86,7 +86,7 @@ return (
 
     </VStack>
 
-    {/* ÍCONE POSICIONADO NO CANTO INFERIOR DIREITO */}
+
     <Box position="absolute" bottom="12px" right="12px">
       {houveFinalizacaoAtrasada ? (
         <Icon as={BsExclamationTriangleFill} color="orange.400" boxSize={5} />

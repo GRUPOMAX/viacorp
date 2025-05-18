@@ -38,7 +38,7 @@ export default function Login({ onLogin }) {
           isClosable: true,
         });
 
-        // ✅ Salvando no localStorage
+        
         localStorage.setItem('usuario-viacorp', JSON.stringify(usuario));
         onLogin(usuario);
 
@@ -60,16 +60,16 @@ export default function Login({ onLogin }) {
     }
   };
 
-  // 👉 Função para formatar visualmente
+  
   const formatarCPF = (valor) => {
     return valor
-      .replace(/\D/g, '') // remove tudo que não for número
+      .replace(/\D/g, '') 
       .replace(/(\d{3})(\d)/, '$1.$2')
       .replace(/(\d{3})(\d)/, '$1.$2')
       .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
   };
 
-  // 👉 Função para remover formatação (apenas números)
+ 
   const limparCPF = (valor) => valor.replace(/\D/g, '');
 
 
