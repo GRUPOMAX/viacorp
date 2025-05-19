@@ -159,6 +159,10 @@ const handleSalvar = async () => {
 
 
     let totalKm = kmFinalNumber - kmInicial;
+    //Calcula a quilometragem rodada no dia com base na diferença entre o KM final e o KM inicial salvos no início do dia.
+
+
+    //Se for um valor muito baixo (menor que 1 km), ele transforma para metros ou centímetros:
     let unidade = 'km';
 
     if (totalKm < 1) {
@@ -167,9 +171,13 @@ const handleSalvar = async () => {
       if (unidade === 'cm') totalKm *= 100;
     }
 
+    //Transforma o valor total em um número com duas casas decimais.
     const valorTotal = Number(valorAbastecido.replace(/[^\d]/g, '')) / 100;
     const precoPorLitro = Number(precoLitro.replace(/[^\d]/g, '')) / 100;
 
+
+    // Calculo de Litros Abastecidos
+    // R$ 100 / R$ 5,00 por litro = 20 litros abastecidos.
     const litrosAbastecidos = (houveAbastecimento && valorTotal && precoPorLitro)
       ? parseFloat((valorTotal / precoPorLitro).toFixed(2))
       : 0;
@@ -194,6 +202,9 @@ const handleSalvar = async () => {
 
     let registroUser = null; // <- Definindo o Registro do Usuario Fora do IF como variavel global
 
+
+
+
     // Se não tiver na empresa, busca do veículo do usuário
     if (!performancePadrao || performancePadrao <= 0) {
       const resUser = await fetch(
@@ -205,13 +216,32 @@ const handleSalvar = async () => {
       performancePadrao = veiculoUser?.['KM-PERFORMACE'] ?? 0;
     }
 
+
+
+
+
+
+
+
+
+
+
+    //baseado na performance padrão do veículo, calcula quantos litros foram consumidos.
     const litrosConsumidos = performancePadrao > 0
       ? parseFloat((totalKm / performancePadrao).toFixed(2))
       : 0;
 
+
+    // Consumo real do veículo com base no KM total rodado e o consumo de litros.
     const consumoReal = (totalKm > 0 && litrosConsumidos > 0)
       ? parseFloat((totalKm / litrosConsumidos).toFixed(2))
       : 0;
+
+
+
+
+
+
 
 
 
@@ -225,6 +255,9 @@ const handleSalvar = async () => {
       const novaLista = listaPadrao.map(v => {
         if (v.veiculo?.trim().toLowerCase() === veiculoAtual?.trim().toLowerCase()) {
           const atual = parseFloat(v['ABASTECIMENTO-DISPONIVELE-LITRO'] || 0);
+
+
+          // Se houve abastecimento, atualiza o valor
           const novo = Math.max(0, parseFloat((atual - litrosConsumidos + litrosAbastecidos).toFixed(2)));
           litrosRestantesFinais = novo;
           return { ...v, 'ABASTECIMENTO-DISPONIVELE-LITRO': novo };
