@@ -342,7 +342,7 @@ const handleSalvar = async () => {
       'TOTAL-KM_RODADO': parseFloat(totalKm.toFixed(2)),
       'UNIDADE': unidade,
       'ABASTECEU': houveAbastecimento,
-      'VALOR_ABASTECIMENTO': houveAbastecimento ? `R$ ${valorAbastecido}` : '',
+      'VALOR_ABASTECIMENTO': houveAbastecimento ? `${valorAbastecido}` : '',
       'TIPO_DE_ABASTECIMENTO': tipoCombustivel,
       'URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_1': comprovantes[0] || '',
       'URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_2': comprovantes[1] || '',
