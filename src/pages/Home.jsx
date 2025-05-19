@@ -243,28 +243,29 @@ export default function Home() {
 
         {typeof litrosRestantes === 'number' && !isNaN(litrosRestantes) && (
           <Box textAlign="center" mb={4}>
-            <Box
-              onClick={() => {
-                if (litrosRestantes <= 0) setModalAbastecimentoAberto(true);
-              }}
-              cursor={litrosRestantes <= 0 ? 'pointer' : 'default'}
-              bg={litrosRestantes <= 0 ? 'red.100' : 'blue.100'}
-              color={litrosRestantes <= 0 ? 'red.600' : 'blue.700'}
-              px={4}
-              py={2}
-              borderRadius="md"
-              fontWeight="semibold"
-              fontSize="sm"
-              display="inline-flex"
-              alignItems="center"
-              gap={2}
-              transition="all 0.2s"
-              _hover={litrosRestantes <= 0 ? { bg: 'red.200' } : {}}
-              animation={litrosRestantes <= 0 ? `${pulse} 1.5s infinite` : 'none'}
-            >
-              Combustível restante: {litrosRestantes.toFixed(2)} litros
-              {litrosRestantes <= 0 && <FiPlusCircle />}
-            </Box>
+          <Box
+            onClick={() => {
+              if (litrosRestantes <= 5) setModalAbastecimentoAberto(true);
+            }}
+            cursor={litrosRestantes <= 5 ? 'pointer' : 'default'}
+            bg={litrosRestantes <= 5 ? 'orange.100' : 'blue.100'}
+            color={litrosRestantes <= 5 ? 'orange.700' : 'blue.700'}
+            px={4}
+            py={2}
+            borderRadius="md"
+            fontWeight="semibold"
+            fontSize="sm"
+            display="inline-flex"
+            alignItems="center"
+            gap={2}
+            transition="all 0.2s"
+            _hover={litrosRestantes <= 5 ? { bg: 'orange.200' } : {}}
+            animation={litrosRestantes <= 5 ? `${pulse} 1.5s infinite` : 'none'}
+          >
+            Combustível restante: {litrosRestantes.toFixed(2)} litros
+            {litrosRestantes <= 5 && <FiPlusCircle />}
+          </Box>
+
 
           </Box>
         )}
