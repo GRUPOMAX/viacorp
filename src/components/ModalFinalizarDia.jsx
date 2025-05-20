@@ -460,7 +460,7 @@ const handleSalvar = async () => {
                   accept="image/*"
                   hidden
                   onChange={handleUpload(setFotoKmFinal)}
-                  capture="environment"
+                  //capture="environment"
                 />
               </label>
             </HStack>
@@ -522,7 +522,7 @@ const handleSalvar = async () => {
                       accept="image/*"
                       hidden
                       onChange={handleUploadComprovante}
-                      capture="environment"
+                      //capture="environment"
                     />
                   </label>
                 </HStack>

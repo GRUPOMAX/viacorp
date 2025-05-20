@@ -343,7 +343,7 @@ const handleSalvar = async () => {
                     accept="image/*"
                     hidden
                     onChange={handleUpload}
-                    capture="environment" // Tenta abrir a câmera em dispositivos móveis
+                    //capture="environment" // isso ativa a câmera em dispositivos móveis
                   />
                 </label>
               </HStack>
