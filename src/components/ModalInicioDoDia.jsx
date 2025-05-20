@@ -6,6 +6,8 @@ import {
 import { FiPlus, FiCamera } from 'react-icons/fi';
 import { useState } from 'react';
 import { salvarRegistroKm } from '../services/api';
+import { handleSalvarInicioDoDia } from '../utils/handleSalvarInicioDoDia';
+
 import { FiTrash } from 'react-icons/fi';
 import dayjs from 'dayjs';
 import 'dayjs/locale/pt-br';
@@ -206,6 +208,32 @@ const handleSalvar = async () => {
       "VEICULO": veiculo
     };
 
+    // Verificar se o veículo já foi iniciado por outro usuário no dia atual
+      const resTodos = await fetch(
+        `https://nocodb.nexusnerds.com.br/api/v2/tables/m0hj8eje9k5w4c0/records?where=(Data,eq,${data})`,
+        { headers: { 'xc-token': NOCODB_TOKEN } }
+      );
+      const todosRegistros = await resTodos.json();
+      const registrosDoDia = todosRegistros?.list ?? [];
+
+      // Verifica se o veículo já foi usado no dia por outro CPF
+      const veiculoJaUsado = registrosDoDia.some(reg =>
+        (reg['UnicID-CPF'] !== usuario.CPF) &&
+        Object.values(reg['KM-CONTROL-SEMANAL'] || {}).flat().some(d => d?.VEICULO === veiculo)
+      );
+
+      if (veiculoJaUsado) {
+        toast({
+          title: 'Veículo já em uso',
+          description: 'Este veículo já foi iniciado por outro usuário hoje.',
+          status: 'error',
+          isClosable: true,
+        });
+        setCarregando(false);
+        return;
+      }
+
+
     await salvarRegistroKm(usuario.CPF, dadosDoDia, data);
 
     toast({
@@ -350,11 +378,24 @@ const handleSalvar = async () => {
               <Button
                 colorScheme="blue"
                 w="full"
-                onClick={handleSalvar}
+                onClick={() => handleSalvarInicioDoDia({
+                  veiculo,
+                  kmInicial,
+                  fotoKm,
+                  toast,
+                  onSalvar,
+                  onClose,
+                  setVeiculo,
+                  setKmInicial,
+                  setFotoKm,
+                  setImgPreview,
+                  setCarregando
+                })}
                 isLoading={carregando}
               >
                 Salvar e Iniciar Dia
               </Button>
+
             </VStack>
           </ModalBody>
         </ModalContent>

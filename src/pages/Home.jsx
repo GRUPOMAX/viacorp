@@ -179,10 +179,20 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-  if (veiculoSelecionado) {
-    fetchLitrosPorVeiculo(veiculoSelecionado);
-  }
-}, [veiculoSelecionado]);
+    if (veiculoSelecionado) {
+      fetchLitrosPorVeiculo(veiculoSelecionado); // 👈 Busca inicial
+    }
+
+    const intervalo = setInterval(() => {
+      if (veiculoSelecionado) {
+        fetchLitrosPorVeiculo(veiculoSelecionado); // 🔁 Atualização contínua
+      }
+    }, 1000); // 1000 ms = 1 segundo
+
+    return () => clearInterval(intervalo); // 🔚 Limpeza
+  }, [veiculoSelecionado]);
+
+
 
 
   const abrirFinalizacao = (dados) => {

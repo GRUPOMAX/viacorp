@@ -55,6 +55,13 @@ export default function ModalAbastecimentoZerado({ isOpen, onClose, onSucesso, v
     const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
     const cpf = usuario?.['UnicID-CPF'];
     const empresa = usuario?.company ?? 'max-fibra';
+
+    // Buscar nome do usuário com base no UnicID-CPF
+    const resNome = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/msehqhsr7j040uq/records?where=(UnicID-CPF,eq,${cpf})`, {
+      headers: { 'xc-token': NOCODB_TOKEN }
+    });
+    const dadosNome = await resNome.json();
+    const nomeUsuario = dadosNome?.list?.[0]?.first_nome || 'Usuário desconhecido';
     const dataHoje = dayjs().format('YYYY-MM-DD');
     const valorNum = Number(valorAbastecido.replace(/[^\d]/g, '')) / 100;
     const precoNum = Number(precoPorLitro.replace(/[^\d]/g, '')) / 100;
@@ -84,7 +91,8 @@ export default function ModalAbastecimentoZerado({ isOpen, onClose, onSucesso, v
         valor: valorAbastecido,
         preco_litro: precoPorLitro,
         litros: novoLitros,
-        comprovantes: comprovantes.filter(Boolean)
+        comprovantes: comprovantes.filter(Boolean),
+        responsavel: nomeUsuario  // 👈 Aqui será salvo o nome
         };
 
         const novosComprovantes = [...(listaPadrao['comprovante'] || []), novoRegistro];
