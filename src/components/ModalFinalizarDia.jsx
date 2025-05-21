@@ -157,6 +157,16 @@ const handleSalvar = async () => {
       return;
     }
 
+    if (!fotoKmFinal) {
+      toast({
+        title: 'Foto obrigatória',
+        description: 'Você deve tirar ou enviar uma foto do KM final.',
+        status: 'warning',
+        isClosable: true,
+      });
+      return;
+    }
+
 
     let totalKm = kmFinalNumber - kmInicial;
     //Calcula a quilometragem rodada no dia com base na diferença entre o KM final e o KM inicial salvos no início do dia.
@@ -454,6 +464,8 @@ const handleSalvar = async () => {
                   aria-label="Upload KM Final"
                   as="span"
                   cursor="pointer"
+                  border="2px solid"
+                  borderColor={!fotoKmFinal ? 'green.400' : 'transparent'}
                 />
                 <input
                   type="file"
@@ -463,6 +475,7 @@ const handleSalvar = async () => {
                   //capture="environment"
                 />
               </label>
+
             </HStack>
 
             {fotoKmFinal && (
@@ -516,15 +529,18 @@ const handleSalvar = async () => {
                       aria-label="Upload comprovante"
                       as="span"
                       cursor="pointer"
+                      border="2px solid"
+                      borderColor={comprovantes.length === 0 ? 'green.400' : 'transparent'}
                     />
                     <input
                       type="file"
                       accept="image/*"
                       hidden
                       onChange={handleUploadComprovante}
-                      //capture="environment"
+                      // capture="environment"
                     />
                   </label>
+
                 </HStack>
 
                   <Input

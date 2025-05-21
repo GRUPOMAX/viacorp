@@ -35,6 +35,16 @@ export async function handleSalvarInicioDoDia({
     return;
   }
 
+  if (!fotoKm) {
+    toast({
+      title: 'Foto obrigatória',
+      description: 'Você deve tirar ou enviar uma foto do KM inicial.',
+      status: 'warning',
+      isClosable: true,
+    });
+    return;
+  }
+
   const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
   if (!usuario?.CPF || !usuario?.Enterprise) {
     toast({ title: 'Erro: usuário não encontrado', status: 'error', isClosable: true });
@@ -46,7 +56,6 @@ export async function handleSalvarInicioDoDia({
     const NOCODB_TOKEN = import.meta.env.VITE_NOCODB_TOKEN;
     let litrosDisponiveis = 0;
 
-    // Busca abastecimento do usuário ou veículo da empresa
     const resUser = await fetch(
       `https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${usuario.CPF})`,
       { headers: { 'xc-token': NOCODB_TOKEN } }
@@ -86,7 +95,7 @@ export async function handleSalvarInicioDoDia({
     const dadosDoDia = {
       "KM-INICIAL": Number(kmInicial),
       "HORA_KM-INICIAL": hora,
-      "URL_IMG-KM-INICIAL": fotoKm || '',
+      "URL_IMG-KM-INICIAL": fotoKm,
       "KM-FINAL": 0,
       "HORA_KM-FINAL": '',
       "URL_IMG-KM-FINAL": '',
@@ -100,7 +109,6 @@ export async function handleSalvarInicioDoDia({
       "VEICULO": veiculo
     };
 
-    // Busca todos os registros
     const resTodos = await fetch(
       `https://nocodb.nexusnerds.com.br/api/v2/tables/m0hj8eje9k5w4c0/records`,
       { headers: { 'xc-token': NOCODB_TOKEN } }
@@ -108,7 +116,6 @@ export async function handleSalvarInicioDoDia({
     const todosRegistros = await resTodos.json();
     const registrosDoDia = todosRegistros?.list ?? [];
 
-    // Procura conflito de veículo em uso e não finalizado
     const entradaConflitante = registrosDoDia.flatMap(reg => {
       const controle = reg['KM-CONTROL-SEMANAL'];
       const entradas = controle?.[data] ?? [];

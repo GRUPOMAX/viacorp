@@ -29,6 +29,8 @@ export default function Home() {
   const [modalAbastecimentoAberto, setModalAbastecimentoAberto] = useState(false);
   const [veiculosDisponiveis, setVeiculosDisponiveis] = useState([]);
   const [veiculoSelecionado, setVeiculoSelecionado] = useState('');
+  const [modalInicioAberto, setModalInicioAberto] = useState(false);
+
 
 
   // 🔁 Animação de pulsação

@@ -331,21 +331,24 @@ const handleSalvar = async () => {
                 />
 
                 
-                <label>
-                  <IconButton
-                    icon={<FiCamera />}
-                    aria-label="Upload KM"
-                    as="span"
-                    cursor="pointer"
-                  />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={handleUpload}
-                    //capture="environment" // isso ativa a câmera em dispositivos móveis
-                  />
-                </label>
+                  <label>
+                    <IconButton
+                      icon={<FiCamera />}
+                      aria-label="Upload KM"
+                      as="span"
+                      cursor="pointer"
+                      border="2px solid"
+                      borderColor={!fotoKm ? 'green.400' : 'transparent'}
+                    />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={handleUpload}
+                      //capture="environment" // isso ativa a câmera em dispositivos móveis
+                    />
+                  </label>
+
               </HStack>
 
 
