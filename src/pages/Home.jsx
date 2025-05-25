@@ -15,8 +15,14 @@ import api, { salvarRegistroKm } from '../services/api';
 import dayjs from 'dayjs';
 import 'dayjs/locale/pt-br';
 import isoWeek from 'dayjs/plugin/isoWeek';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+
 dayjs.extend(isoWeek);
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
 dayjs.locale('pt-br');
+
 
 export default function Home() {
   const [diasSemana, setDiasSemana] = useState([]);
@@ -126,59 +132,75 @@ export default function Home() {
 
 
 
-  useEffect(() => {
-    const fetchSemana = async () => {
-      setCarregando(true);
+useEffect(() => {
+  const fetchSemana = async () => {
+    setCarregando(true);
 
-      const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
-      const cpf = usuario?.['UnicID-CPF'];
-      if (!cpf) return;
+    const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
+    const cpf = usuario?.['UnicID-CPF'];
+    if (!cpf) return;
 
-      try {
-        const res = await api.get('/api/v2/tables/m0hj8eje9k5w4c0/records', {
-          params: {
-            where: `(UnicID-CPF,eq,${cpf})`
-          }
-        });
+    try {
+      const res = await api.get('/api/v2/tables/m0hj8eje9k5w4c0/records', {
+        params: {
+          where: `(UnicID-CPF,eq,${cpf})`
+        }
+      });
 
-        const registro = res.data.list[0];
-        const semana = [];
-        const hoje = dayjs();
-        const inicioSemana = hoje.startOf('week'); // começa no domingo
+      const registro = res.data.list[0];
+      const controle = registro?.['KM-CONTROL-SEMANAL'] || {};
+
+      const hoje = dayjs();
+      const inicioSemana = hoje.startOf('week');
+      const fimSemana = hoje.endOf('week');
+
+      const listaFinal = [];
+
+      Object.entries(controle).forEach(([data, entradas]) => {
+        const dataDia = dayjs(String(data));
+        console.log('🔍 data:', data, '➡️', dayjs(String(data)).format());
 
 
-        for (let i = 0; i < 7; i++) {
-          const dia = inicioSemana.add(i, 'day');
-          const dataFormatada = dia.format('YYYY-MM-DD');
-          const registros = registro?.['KM-CONTROL-SEMANAL']?.[dataFormatada];
+        entradas.forEach((entrada) => {
+          const kmFinal = entrada?.['KM-Control']?.['KM-FINAL'];
+          const dataFinalizacao = entrada?.['KM-Control']?.['DATA_FINALIZACAO'];
+          const dataInicio = data;
 
-          if (registros && registros.length > 0) {
-            registros.forEach((registro) => {
-              const horaString = registro?.['KM-Control']?.['HORA_KM-INICIAL'] || '00:00';
-              const hora = dayjs(`${dataFormatada} ${horaString}`, 'YYYY-MM-DD HH:mm').toDate();
+          const naoFinalizado = !kmFinal || kmFinal === 0;
 
-              semana.push({
-                ...registro,
-                hora,
-                data: dataFormatada,
-                veiculo: registro?.['KM-Control']?.['VEICULO'] ?? 'Não informado',
-                cpf: cpf
-              });
+          const mostrar =
+            (dataDia.isValid() &&
+              dataDia.isSameOrAfter(inicioSemana, 'day') &&
+              dataDia.isSameOrBefore(fimSemana, 'day')) ||
+            naoFinalizado;
+
+          if (mostrar) {
+            const horaString = entrada?.['KM-Control']?.['HORA_KM-INICIAL'] || '00:00';
+            const hora = dayjs(`${data} ${horaString}`, 'YYYY-MM-DD HH:mm').toDate();
+
+            listaFinal.push({
+              ...entrada,
+              hora,
+              data,
+              veiculo: entrada?.['KM-Control']?.['VEICULO'] ?? 'Não informado',
+              cpf,
             });
           }
-        }
+        });
+      });
 
-        setDiasSemana(semana);
-        await fetchVeiculosDisponiveis();
-      } catch (err) {
-        console.error('Erro ao buscar controle KM:', err);
-      } finally {
-        setCarregando(false);
-      }
-    };
+      setDiasSemana(listaFinal);
+      await fetchVeiculosDisponiveis();
+    } catch (err) {
+      console.error('Erro ao buscar controle KM:', err);
+    } finally {
+      setCarregando(false);
+    }
+  };
 
-    fetchSemana();
-  }, []);
+  fetchSemana();
+}, []);
+
 
   useEffect(() => {
     if (veiculoSelecionado) {
@@ -287,12 +309,21 @@ export default function Home() {
         <Spinner size="lg" />
       ) : (
         <>
-          {[...diasSemana]
-            .sort((a, b) => new Date(b.hora) - new Date(a.hora))
-            .slice(0, 3)
-            .map((dia, index) => (
-              <CardDiaRodando key={index} dados={dia} aoClicar={() => abrirFinalizacao(dia)} />
-          ))}
+        {[...diasSemana]
+          .filter((dia) => {
+            const kmFinal = dia?.['KM-Control']?.['KM-FINAL'];
+            const dataFinalizacao = dia?.['KM-Control']?.['DATA_FINALIZACAO'];
+            const dataInicio = dayjs(dia?.hora).format('YYYY-MM-DD');
+            
+            const naoFinalizado = !kmFinal || kmFinal === 0;
+            const finalizadoNoMesmoDia = dataFinalizacao ? dataFinalizacao === dataInicio : true;
+            return naoFinalizado || finalizadoNoMesmoDia;
+          })
+          .sort((a, b) => new Date(b.hora) - new Date(a.hora))
+          .slice(0, 3)
+          .map((dia, index) => (
+            <CardDiaRodando key={index} dados={dia} aoClicar={() => abrirFinalizacao(dia)} />
+        ))}
 
           <ModalInicioDoDia
             veiculoSelecionado={veiculoSelecionado}

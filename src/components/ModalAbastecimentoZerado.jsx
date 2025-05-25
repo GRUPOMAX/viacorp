@@ -1,6 +1,6 @@
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton,
-  Input, Select, IconButton, VStack, Button, Image, HStack, useToast, Box
+  Input, Select, IconButton, VStack, Button, Image, HStack, useToast, Box, Spinner
 } from '@chakra-ui/react';
 import { useState } from 'react';
 import { FiCamera, FiTrash } from 'react-icons/fi';
@@ -13,6 +13,8 @@ export default function ModalAbastecimentoZerado({ isOpen, onClose, onSucesso, v
   const [valorAbastecido, setValorAbastecido] = useState('');
   const [precoPorLitro, setPrecoPorLitro] = useState('');
   const [comprovantes, setComprovantes] = useState([]);
+  const [carregandoComprovante, setCarregandoComprovante] = useState(false);
+
   const toast = useToast();
 
   const uploadImagem = async (file) => {
@@ -38,13 +40,19 @@ export default function ModalAbastecimentoZerado({ isOpen, onClose, onSucesso, v
 
   const handleUploadComprovante = async (e) => {
     const file = e.target.files[0];
-    if (file && comprovantes.length < 2) {
-      const url = await uploadImagem(file);
-      if (url) setComprovantes(prev => [...prev, url]);
-    } else {
+    if (!file) return;
+
+    if (comprovantes.length >= 2) {
       toast({ title: 'Máximo de 2 imagens.', status: 'warning', isClosable: true });
+      return;
     }
+
+    setCarregandoComprovante(true);
+    const url = await uploadImagem(file);
+    if (url) setComprovantes(prev => [...prev, url]);
+    setCarregandoComprovante(false);
   };
+
 
     const handleSalvar = async () => {
     if (!tipoCombustivel || !valorAbastecido || !precoPorLitro || comprovantes.length === 0) {
@@ -252,10 +260,17 @@ export default function ModalAbastecimentoZerado({ isOpen, onClose, onSucesso, v
               }}
             />
 
-            <label>
-              <IconButton icon={<FiCamera />} as="span" aria-label="Foto" />
-              <input type="file" hidden accept="image/*" onChange={handleUploadComprovante} />
-            </label>
+            {carregandoComprovante ? (
+              <Box boxSize="48px" display="flex" alignItems="center" justifyContent="center">
+                <Spinner size="sm" color="blue.500" />
+              </Box>
+            ) : (
+              <label>
+                <IconButton icon={<FiCamera />} as="span" aria-label="Foto" />
+                <input type="file" hidden accept="image/*" onChange={handleUploadComprovante} />
+              </label>
+            )}
+
 
             <HStack wrap="wrap">
               {comprovantes.map((url, idx) => (

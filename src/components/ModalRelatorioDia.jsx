@@ -235,38 +235,61 @@ const gerarImagem = async () => {
               ) : (
                 mostrarImagens && (
                   <VStack align="start" spacing={3}>
-                    {km?.['URL_IMG-KM-FINAL'] && (
-                      <Image
-                        src={km['URL_IMG-KM-FINAL']}
-                        alt="KM Final"
-                        borderRadius="md"
-                        objectFit="cover"
-                        boxSize="full"
-                        maxH="200px"
-                      />
+                    {km?.['URL_IMG-KM-INICIAL'] && (
+                      <Box w="full">
+                        <Text fontSize="sm" color="gray.500" mb={1}>Foto KM Inicial</Text>
+                        <Image
+                          src={km['URL_IMG-KM-INICIAL']}
+                          alt="KM Inicial"
+                          borderRadius="md"
+                          objectFit="cover"
+                          w="full"
+                          maxH="200px"
+                        />
+                      </Box>
                     )}
 
-                    <HStack spacing={3} wrap="wrap">
-                      {km?.['URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_1'] && (
+                    {km?.['URL_IMG-KM-FINAL'] && (
+                      <Box w="full">
+                        <Text fontSize="sm" color="gray.500" mb={1}>Foto KM Final</Text>
                         <Image
-                          src={km['URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_1']}
-                          alt="Comprovante 1"
+                          src={km['URL_IMG-KM-FINAL']}
+                          alt="KM Final"
                           borderRadius="md"
-                          boxSize="120px"
                           objectFit="cover"
+                          w="full"
+                          maxH="200px"
                         />
-                      )}
-                      {km?.['URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_2'] && (
-                        <Image
-                          src={km['URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_2']}
-                          alt="Comprovante 2"
-                          borderRadius="md"
-                          boxSize="120px"
-                          objectFit="cover"
-                        />
-                      )}
-                    </HStack>
+                      </Box>
+                    )}
+
+                    {(km?.['URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_1'] || km?.['URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_2']) && (
+                      <Box w="full">
+                        <Text fontSize="sm" color="gray.500" mb={1}>Comprovantes</Text>
+                        <HStack spacing={3} wrap="wrap">
+                          {km?.['URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_1'] && (
+                            <Image
+                              src={km['URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_1']}
+                              alt="Comprovante 1"
+                              borderRadius="md"
+                              boxSize="120px"
+                              objectFit="cover"
+                            />
+                          )}
+                          {km?.['URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_2'] && (
+                            <Image
+                              src={km['URL_IMG-KM-COMPROVANTE_ABASTECIMENTO_2']}
+                              alt="Comprovante 2"
+                              borderRadius="md"
+                              boxSize="120px"
+                              objectFit="cover"
+                            />
+                          )}
+                        </HStack>
+                      </Box>
+                    )}
                   </VStack>
+
                 )
               )}
             </Box>

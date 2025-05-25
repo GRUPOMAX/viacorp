@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton,
-  Button, useDisclosure, Input, VStack, IconButton, Select, Image, useToast, HStack,Box
+  Button, useDisclosure, Input, VStack, IconButton, Select, Image, useToast, HStack,Box, Spinner
 } from '@chakra-ui/react';
 import { FiPlus, FiCamera } from 'react-icons/fi';
 import { useState } from 'react';
@@ -28,6 +28,8 @@ export default function ModalInicioDoDia({ onSalvar, veiculoSelecionado }) {
   const [carregando, setCarregando] = useState(false);
   const [veiculoPadrao, setVeiculoPadrao] = useState('');
   const [opcoesVeiculos, setOpcoesVeiculos] = useState([]);
+  const [carregandoImagem, setCarregandoImagem] = useState(false);
+
   const toast = useToast();
 
 useEffect(() => {
@@ -273,14 +275,17 @@ const handleSalvar = async () => {
   const handleUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
+      setCarregandoImagem(true);
       const preview = URL.createObjectURL(file);
       setImgPreview(preview);
       const uploadedURL = await uploadImagem(file);
       if (uploadedURL) {
         setFotoKm(uploadedURL);
       }
+      setCarregandoImagem(false);
     }
   };
+
 
   return (
     <>
@@ -331,6 +336,11 @@ const handleSalvar = async () => {
                 />
 
                 
+                {carregandoImagem ? (
+                  <Box boxSize="48px" display="flex" alignItems="center" justifyContent="center">
+                    <Spinner size="sm" color="blue.500" />
+                  </Box>
+                ) : (
                   <label>
                     <IconButton
                       icon={<FiCamera />}
@@ -345,9 +355,10 @@ const handleSalvar = async () => {
                       accept="image/*"
                       hidden
                       onChange={handleUpload}
-                      //capture="environment" // isso ativa a câmera em dispositivos móveis
                     />
                   </label>
+                )}
+
 
               </HStack>
 

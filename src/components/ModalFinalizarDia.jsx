@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton,
-  Button, Input, VStack, HStack, IconButton, Select, Image, useToast, Checkbox, Text, Box
+  Button, Input, VStack, HStack, IconButton, Select, Image, useToast, Checkbox, Text, Box, Spinner
 } from '@chakra-ui/react';
 
 import { FiCamera, FiTrash, FiPlusCircle } from 'react-icons/fi';
@@ -21,6 +21,9 @@ export default function ModalFinalizarDia({ isOpen, onClose, onSalvar, dadosDia 
   const [observacao, setObservacao] = useState('');
   const [mostrarObs, setMostrarObs] = useState(false);
   const [precoLitro, setPrecoLitro] = useState('');
+  const [carregandoKmFinal, setCarregandoKmFinal] = useState(false);
+  const [carregandoComprovante, setCarregandoComprovante] = useState(false);
+
   const [kmPorLitroPadrao, setKmPorLitroPadrao] = useState(0);
 
   const toast = useToast();
@@ -83,35 +86,41 @@ export default function ModalFinalizarDia({ isOpen, onClose, onSalvar, dadosDia 
     }
   };
 
-  const handleUpload = (setter) => async (e) => {
+  const handleUpload = (setter, setLoading) => async (e) => {
     const file = e.target.files[0];
     if (file) {
+      setLoading(true);
       const url = await uploadImagem(file);
       if (url) {
         setter(url);
       }
+      setLoading(false);
     }
   };
 
-  const handleUploadComprovante = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
 
-    if (comprovantes.length >= 2) {
-      toast({
-        title: 'Limite de imagens atingido',
-        description: 'Você pode enviar no máximo 2 imagens de comprovante.',
-        status: 'warning',
-        isClosable: true,
-      });
-      return;
-    }
+const handleUploadComprovante = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
 
-    const url = await uploadImagem(file);
-    if (url) {
-      setComprovantes((prev) => [...prev, url]);
-    }
-  };
+  if (comprovantes.length >= 2) {
+    toast({
+      title: 'Limite de imagens atingido',
+      description: 'Você pode enviar no máximo 2 imagens de comprovante.',
+      status: 'warning',
+      isClosable: true,
+    });
+    return;
+  }
+
+  setCarregandoComprovante(true);
+  const url = await uploadImagem(file);
+  if (url) {
+    setComprovantes((prev) => [...prev, url]);
+  }
+  setCarregandoComprovante(false);
+};
+
 
 const handleSalvar = async () => {
   if (!kmFinal || (houveAbastecimento && (!tipoCombustivel || !valorAbastecido))) {
@@ -137,10 +146,10 @@ const handleSalvar = async () => {
     const kmFinalNumber = parseFloat(kmFinal);
 
         // 🛑 DEBBUG EVITANDO ERROS -33333,0933
-    if (kmFinalNumber < kmInicial) {
+    if (kmFinalNumber <= kmInicial) {
       toast({
         title: 'KM Final inválido',
-        description: 'O KM final não pode ser menor que o KM inicial.',
+        description: 'O KM final deve ser maior que o KM inicial.',
         status: 'error',
         isClosable: true,
       });
@@ -458,23 +467,29 @@ const handleSalvar = async () => {
                   if (/^\d*$/.test(value)) setKmFinal(value);
                 }}
               />
-              <label>
-                <IconButton
-                  icon={<FiCamera />}
-                  aria-label="Upload KM Final"
-                  as="span"
-                  cursor="pointer"
-                  border="2px solid"
-                  borderColor={!fotoKmFinal ? 'green.400' : 'transparent'}
-                />
-                <input
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={handleUpload(setFotoKmFinal)}
-                  //capture="environment"
-                />
-              </label>
+              {carregandoKmFinal ? (
+                <Box boxSize="48px" display="flex" alignItems="center" justifyContent="center">
+                  <Spinner size="sm" color="blue.500" />
+                </Box>
+              ) : (
+                <label>
+                  <IconButton
+                    icon={<FiCamera />}
+                    aria-label="Upload KM Final"
+                    as="span"
+                    cursor="pointer"
+                    border="2px solid"
+                    borderColor={!fotoKmFinal ? 'green.400' : 'transparent'}
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={handleUpload(setFotoKmFinal, setCarregandoKmFinal)}
+                  />
+                </label>
+              )}
+
 
             </HStack>
 
@@ -523,23 +538,29 @@ const handleSalvar = async () => {
                     <option>Diesel</option>
                   </Select>
 
-                  <label>
-                    <IconButton
-                      icon={<FiCamera />}
-                      aria-label="Upload comprovante"
-                      as="span"
-                      cursor="pointer"
-                      border="2px solid"
-                      borderColor={comprovantes.length === 0 ? 'green.400' : 'transparent'}
-                    />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      hidden
-                      onChange={handleUploadComprovante}
-                      // capture="environment"
-                    />
-                  </label>
+                    {carregandoComprovante ? (
+                      <Box boxSize="48px" display="flex" alignItems="center" justifyContent="center">
+                        <Spinner size="sm" color="blue.500" />
+                      </Box>
+                    ) : (
+                      <label>
+                        <IconButton
+                          icon={<FiCamera />}
+                          aria-label="Upload comprovante"
+                          as="span"
+                          cursor="pointer"
+                          border="2px solid"
+                          borderColor={comprovantes.length === 0 ? 'green.400' : 'transparent'}
+                        />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          hidden
+                          onChange={handleUploadComprovante}
+                        />
+                      </label>
+                    )}
+
 
                 </HStack>
 
