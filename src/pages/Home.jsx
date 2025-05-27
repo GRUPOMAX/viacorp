@@ -7,6 +7,8 @@ import ModalFinalizarDia from '../components/ModalFinalizarDia';
 import BottomMenu from '../components/BottomMenu';
 import ModalRelatorioDia from '../components/ModalRelatorioDia';
 import ModalAbastecimentoZerado from '../components/ModalAbastecimentoZerado';
+import { Tooltip } from '@chakra-ui/react'; // adicione se ainda não tiver
+
 
 import { FiPlusCircle } from 'react-icons/fi';
 
@@ -36,6 +38,8 @@ export default function Home() {
   const [veiculosDisponiveis, setVeiculosDisponiveis] = useState([]);
   const [veiculoSelecionado, setVeiculoSelecionado] = useState('');
   const [modalInicioAberto, setModalInicioAberto] = useState(false);
+  const [performanceAtual, setPerformanceAtual] = useState(null);
+
 
 
 
@@ -107,7 +111,9 @@ export default function Home() {
 
       if (modelo === modeloUser) {
         const litros = veiculoUser?.['ABASTECIMENTO-DISPONIVELE-LITRO'];
+        const performance = veiculoUser?.['KM-PERFORMACE'];
         setLitrosRestantes(Number(litros));
+        setPerformanceAtual(Number(performance) || 0); // ✅ aqui
         return;
       }
 
@@ -119,16 +125,19 @@ export default function Home() {
       const dadosPadrao = await resPadrao.json();
       const veiculosPadrao = dadosPadrao?.list?.[0]?.['Vehicle-Standard'] ?? [];
       const encontrado = veiculosPadrao.find(v => v.veiculo === modelo);
+
       if (encontrado && typeof encontrado['ABASTECIMENTO-DISPONIVELE-LITRO'] === 'number') {
         setLitrosRestantes(encontrado['ABASTECIMENTO-DISPONIVELE-LITRO']);
+        setPerformanceAtual(Number(encontrado?.['KM-PERFORMACE']) || 0); // ✅ aqui também
       } else {
         setLitrosRestantes(0);
-}
-
+        setPerformanceAtual(0);
+      }
     } catch (err) {
       console.error('Erro ao buscar combustível por veículo:', err);
     }
   };
+
 
 
 
@@ -296,7 +305,25 @@ useEffect(() => {
             _hover={litrosRestantes <= 5 ? { bg: 'orange.200' } : {}}
             animation={litrosRestantes <= 5 ? `${pulse} 1.5s infinite` : 'none'}
           >
-            Combustível restante: {litrosRestantes.toFixed(2)} litros
+            <Tooltip
+                label={
+                  performanceAtual && performanceAtual > 0
+                    ? `Cálculo: ${litrosRestantes.toFixed(2)} L × ${performanceAtual} km/L = ${(litrosRestantes * performanceAtual).toFixed(0)} km`
+                    : 'Performance padrão não definida'
+                }
+                hasArrow
+                placement="top"
+                bg="gray.700"
+                color="white"
+                fontSize="xs"
+              >
+                <Box as="span">
+                  Combustível restante: {litrosRestantes.toFixed(2)} litros
+                  {performanceAtual && performanceAtual > 0 && (
+                    <> ≈ {(litrosRestantes * performanceAtual).toFixed(0)} km</>
+                  )}
+                </Box>
+              </Tooltip>
             {litrosRestantes <= 5 && <FiPlusCircle />}
           </Box>
 
