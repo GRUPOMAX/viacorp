@@ -33,7 +33,7 @@ export default function Historico() {
       if (!cpf) return;
 
       try {
-        const res = await api.get('/api/v2/tables/m0hj8eje9k5w4c0/records', {
+        const res = await api.get('/api/v2/tables/mcfjf5y9bb4z5h0/records', {
           params: {
             where: `(UnicID-CPF,eq,${cpf})`
           }

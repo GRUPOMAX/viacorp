@@ -1,0 +1,17 @@
+
+
+
+git remote -v   
+origin  https://github.com/GRUPOMAX/viacorp.git (fetch)
+origin  https://github.com/GRUPOMAX/viacorp.git (push)
+
+
+npm install
+
+npm run dev -- --host {Iniciar no localhost}
+
+git add.
+git commit -m 'Comentario'
+git push origin main
+
+SÓ AGUARDA E PRONTO 

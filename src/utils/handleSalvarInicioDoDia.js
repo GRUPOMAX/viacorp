@@ -6,7 +6,7 @@ const buscarNomeUsuario = async (cpf) => {
   const NOCODB_TOKEN = import.meta.env.VITE_NOCODB_TOKEN;
   try {
     const res = await fetch(
-      `https://nocodb.nexusnerds.com.br/api/v2/tables/msehqhsr7j040uq/records?where=(UnicID-CPF,eq,${cpf})&fields=first_nome,last_nome`,
+      `https://nocodb.nexusnerds.com.br/api/v2/tables/mngm0skrjiqa8cf/records?where=(UnicID-CPF,eq,${cpf})&fields=first_nome,last_nome`,
       { headers: { 'xc-token': NOCODB_TOKEN } }
     );
     const data = await res.json();
@@ -57,7 +57,7 @@ export async function handleSalvarInicioDoDia({
     let litrosDisponiveis = 0;
 
     const resUser = await fetch(
-      `https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${usuario.CPF})`,
+      `https://nocodb.nexusnerds.com.br/api/v2/tables/md6hsq8rx1mmxg2/records?where=(UnicID-CPF,eq,${usuario.CPF})`,
       { headers: { 'xc-token': NOCODB_TOKEN } }
     );
     const dadosUser = await resUser.json();
@@ -68,7 +68,7 @@ export async function handleSalvarInicioDoDia({
       litrosDisponiveis = litrosUsuario;
     } else {
       const resEmpresa = await fetch(
-        `https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records?where=(Enterprise,eq,${usuario.Enterprise})`,
+        `https://nocodb.nexusnerds.com.br/api/v2/tables/mu0erb59zudhecf/records?where=(Enterprise,eq,${usuario.Enterprise})`,
         { headers: { 'xc-token': NOCODB_TOKEN } }
       );
       const dadosEmpresa = await resEmpresa.json();
@@ -110,7 +110,7 @@ export async function handleSalvarInicioDoDia({
     };
 
     const resTodos = await fetch(
-      `https://nocodb.nexusnerds.com.br/api/v2/tables/m0hj8eje9k5w4c0/records`,
+      `https://nocodb.nexusnerds.com.br/api/v2/tables/mcfjf5y9bb4z5h0/records`,
       { headers: { 'xc-token': NOCODB_TOKEN } }
     );
     const todosRegistros = await resTodos.json();

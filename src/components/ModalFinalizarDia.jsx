@@ -33,7 +33,7 @@ export default function ModalFinalizarDia({ isOpen, onClose, onSalvar, dadosDia 
       const usuario = JSON.parse(localStorage.getItem('usuario-viacorp'));
       const cpf = usuario?.['UnicID-CPF'];
 
-      const res = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${cpf})`, {
+      const res = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/md6hsq8rx1mmxg2/records?where=(UnicID-CPF,eq,${cpf})`, {
         headers: {
           'xc-token': NOCODB_TOKEN
         }
@@ -204,7 +204,7 @@ const handleSalvar = async () => {
 
 
     // 🔍 Buscar dados da empresa
-    const resEmp = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records?where=(Enterprise,eq,${empresa})`, {
+    const resEmp = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mu0erb59zudhecf/records?where=(Enterprise,eq,${empresa})`, {
       headers: { 'xc-token': NOCODB_TOKEN }
     });
     const dataEmp = await resEmp.json();
@@ -227,7 +227,7 @@ const handleSalvar = async () => {
     // Se não tiver na empresa, busca do veículo do usuário
     if (!performancePadrao || performancePadrao <= 0) {
       const resUser = await fetch(
-        `https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${cpf})`,
+        `https://nocodb.nexusnerds.com.br/api/v2/tables/md6hsq8rx1mmxg2/records?where=(UnicID-CPF,eq,${cpf})`,
         { headers: { 'xc-token': NOCODB_TOKEN } }
       );
       const dadosUser = await resUser.json();
@@ -284,7 +284,7 @@ const handleSalvar = async () => {
         return v;
       });
 
-      await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records`, {
+      await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mu0erb59zudhecf/records`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -298,7 +298,7 @@ const handleSalvar = async () => {
     } else {
       // Atualiza veículo do usuário
       const resUser = await fetch(
-        `https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${cpf})`,
+        `https://nocodb.nexusnerds.com.br/api/v2/tables/md6hsq8rx1mmxg2/records?where=(UnicID-CPF,eq,${cpf})`,
         { headers: { 'xc-token': NOCODB_TOKEN } }
       );
       const dadosUser = await resUser.json();
@@ -313,7 +313,7 @@ const handleSalvar = async () => {
       litrosRestantesFinais = litrosAtualizados;
 
       if (registroId) {
-        await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records`, {
+        await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/md6hsq8rx1mmxg2/records`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -351,7 +351,7 @@ const handleSalvar = async () => {
           return v;
         });
 
-        await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records`, {
+        await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mu0erb59zudhecf/records`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -368,7 +368,7 @@ const handleSalvar = async () => {
           ? registroUser['ABASTECIMENTO-ZERADO']
           : [];
 
-        await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records`, {
+        await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/md6hsq8rx1mmxg2/records`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',

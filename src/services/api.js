@@ -18,7 +18,7 @@ export async function salvarRegistroKm(cpf, dadosDoDia, dataManual = null) {
   });
 
   try {
-    const res = await api.get(`/api/v2/tables/m0hj8eje9k5w4c0/records`, {
+    const res = await api.get(`/api/v2/tables/mcfjf5y9bb4z5h0/records`, {
       params: {
         where: `(UnicID-CPF,eq,${cpf})`
       }
@@ -54,7 +54,7 @@ export async function salvarRegistroKm(cpf, dadosDoDia, dataManual = null) {
         [dataFormatada]: atual
       };
 
-      await api.patch(`/api/v2/tables/m0hj8eje9k5w4c0/records`, {
+      await api.patch(`/api/v2/tables/mcfjf5y9bb4z5h0/records`, {
         "Id": idRegistro,
         "KM-CONTROL-SEMANAL": novoKMControlSemanal
       });
@@ -62,7 +62,7 @@ export async function salvarRegistroKm(cpf, dadosDoDia, dataManual = null) {
       return { status: 'atualizado', id: idRegistro };
     }
 
-    await api.post(`/api/v2/tables/m0hj8eje9k5w4c0/records`, {
+    await api.post(`/api/v2/tables/mcfjf5y9bb4z5h0/records`, {
       "UnicID-CPF": cpf,
       "KM-CONTROL-SEMANAL": {
         [dataFormatada]: [payloadDia]

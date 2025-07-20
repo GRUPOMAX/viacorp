@@ -16,7 +16,7 @@ export default function Login({ onLogin }) {
   const handleLogin = async () => {
     try {
       const res = await axios.get(
-        `${import.meta.env.VITE_NOCODB_URL}/api/v2/tables/msehqhsr7j040uq/records`,
+        `${import.meta.env.VITE_NOCODB_URL}/api/v2/tables/mngm0skrjiqa8cf/records`,
         {
           headers: {
             'xc-token': import.meta.env.VITE_NOCODB_TOKEN

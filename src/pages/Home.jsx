@@ -58,7 +58,7 @@ export default function Home() {
       const empresa = usuario?.Enterprise?.trim();
 
       // Sempre busca os dados do usuário
-      const resUsuario = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${cpf})`, {
+      const resUsuario = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/md6hsq8rx1mmxg2/records?where=(UnicID-CPF,eq,${cpf})`, {
         headers: { 'xc-token': import.meta.env.VITE_NOCODB_TOKEN }
       });
 
@@ -67,7 +67,7 @@ export default function Home() {
 
       // Se o usuário estiver vinculado a uma empresa, tenta buscar veículos da empresa
       if (empresa) {
-        const resEmpresa = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records?where=(Enterprise,eq,${empresa})`, {
+        const resEmpresa = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mu0erb59zudhecf/records?where=(Enterprise,eq,${empresa})`, {
           headers: { 'xc-token': import.meta.env.VITE_NOCODB_TOKEN }
         });
 
@@ -102,7 +102,7 @@ export default function Home() {
 
       // Busca veículos do usuário
       const resUser = await fetch(
-        `https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(UnicID-CPF,eq,${cpf})`,
+        `https://nocodb.nexusnerds.com.br/api/v2/tables/md6hsq8rx1mmxg2/records?where=(UnicID-CPF,eq,${cpf})`,
         { headers: { 'xc-token': import.meta.env.VITE_NOCODB_TOKEN } }
       );
       const dadosUser = await resUser.json();
@@ -119,7 +119,7 @@ export default function Home() {
 
       // Se for padrão, busca na outra tabela
       const resPadrao = await fetch(
-        `https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records?where=(Enterprise,eq,${empresa})`,
+        `https://nocodb.nexusnerds.com.br/api/v2/tables/mu0erb59zudhecf/records?where=(Enterprise,eq,${empresa})`,
         { headers: { 'xc-token': import.meta.env.VITE_NOCODB_TOKEN } }
       );
       const dadosPadrao = await resPadrao.json();
@@ -150,7 +150,7 @@ useEffect(() => {
     if (!cpf) return;
 
     try {
-      const res = await api.get('/api/v2/tables/m0hj8eje9k5w4c0/records', {
+      const res = await api.get('/api/v2/tables/mcfjf5y9bb4z5h0/records', {
         params: {
           where: `(UnicID-CPF,eq,${cpf})`
         }

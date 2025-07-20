@@ -65,7 +65,7 @@ export default function ModalAbastecimentoZerado({ isOpen, onClose, onSucesso, v
     const empresa = usuario?.company ?? 'max-fibra';
 
     // Buscar nome do usuário com base no UnicID-CPF
-    const resNome = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/msehqhsr7j040uq/records?where=(UnicID-CPF,eq,${cpf})`, {
+    const resNome = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mngm0skrjiqa8cf/records?where=(UnicID-CPF,eq,${cpf})`, {
       headers: { 'xc-token': NOCODB_TOKEN }
     });
     const dadosNome = await resNome.json();
@@ -81,7 +81,7 @@ export default function ModalAbastecimentoZerado({ isOpen, onClose, onSucesso, v
     }
 
     // Verifica se é veículo da empresa
-    const resEmpresa = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records?where=(Enterprise,eq,${empresa})`, {
+    const resEmpresa = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mu0erb59zudhecf/records?where=(Enterprise,eq,${empresa})`, {
         headers: { 'xc-token': NOCODB_TOKEN }
     });
     const dataEmpresa = await resEmpresa.json();
@@ -120,7 +120,7 @@ export default function ModalAbastecimentoZerado({ isOpen, onClose, onSucesso, v
           return v;
         });
 
-        const resposta = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mz92fb5ps4z32br/records`, {
+        const resposta = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/mu0erb59zudhecf/records`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -148,7 +148,7 @@ export default function ModalAbastecimentoZerado({ isOpen, onClose, onSucesso, v
     }
 
     // Caso contrário, salvar no modelo de veículo do usuário
-    const res = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records?where=(MODEL-VEHICLE,eq,${veiculo})`, {
+    const res = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/md6hsq8rx1mmxg2/records?where=(MODEL-VEHICLE,eq,${veiculo})`, {
         headers: { 'xc-token': NOCODB_TOKEN }
     });
 
@@ -183,7 +183,7 @@ export default function ModalAbastecimentoZerado({ isOpen, onClose, onSucesso, v
         'ABASTECIMENTO-ZERADO': [...(veiculoUser['ABASTECIMENTO-ZERADO'] || []), abastecimentoZerado],
     };
 
-    const resposta = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/m1sy388a4zv1kgl/records`, {
+    const resposta = await fetch(`https://nocodb.nexusnerds.com.br/api/v2/tables/md6hsq8rx1mmxg2/records`, {
         method: 'PATCH',
         headers: {
         'Content-Type': 'application/json',
